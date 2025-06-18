@@ -1,0 +1,6 @@
+#ifndef _HDC_ACCELERATOR_COMPONENT_
+#define _HDC_ACCELERATOR_COMPONENT_
+
+
+
+#endif
