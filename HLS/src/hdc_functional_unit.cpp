@@ -1,11 +1,7 @@
 #include "hdc_functional_unit.hpp"
 //#include "xf_blas/axpy.hpp"
 
-void functional_unit(Data_t &A, Data_t &B, Data_t &C, Op_t &sel_op){
-//#pragma HLS INTERFACE mode=ap_fifo port=A
-//#pragma HLS INTERFACE mode=ap_fifo port=B
-//#pragma HLS INTERFACE mode=ap_fifo port=C
-//#pragma HLS INTERFACE mode=ap_fifo port=sel_op
+void functional_unit(Data_t &A, Data_t &B, Data_t &C, Op_t sel_op){
 
     Data_t a_b_and = A & B;
     Data_t a_b_xor = A ^ B;

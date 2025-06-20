@@ -3,8 +3,7 @@
 
 void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::stream<Data_t> &fifo_C, hls::stream<Command_t> &command_request, hls::stream<Command_t> &command_response){
 
-    bool finish = false;
-
+	//TO DO: INVESTIGAR RESETEO DE ESTAS SEÑALES
     bool on_going_read_request[2], vector_data_done[2];
 
     Command_t request, response;
@@ -14,7 +13,7 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
         vector_data_done[i]=false;
     }
 
-    while(!finish){
+    while(true){
 
         request = 0;
         response = 0;
@@ -49,12 +48,12 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
             on_going_read_request[1] = true;
         
-        }else if ((fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD || (vector_data_done[0] && vector_data_done[1])) && !fifo_C.empty()) {
+        }else if (fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty()) {
 
             ap_uint<BLOCK_SIZE> vector_data = 0;
 
             for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                vector_data.range((i+1)*BLOCK_SIZE, i*BLOCK_SIZE) = fifo_C.read();
+                vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = fifo_C.read();
             }
 
             //Write data request
@@ -84,7 +83,7 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
                 case 0:
 
                     for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                        fifo_A.write(vector_data.range((i+1)*BLOCK_SIZE, i*BLOCK_SIZE));
+                        fifo_A.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
                     }
 
                     vector_data_done[0] = !remaining_data;
@@ -93,7 +92,7 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
                 case 1:
                     for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                        fifo_B.write(vector_data.range((i+1)*BLOCK_SIZE, i*BLOCK_SIZE));
+                        fifo_B.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
                     }
 
                     vector_data_done[1] = !remaining_data;
@@ -102,8 +101,6 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
             }
         }
-
-        finish = vector_data_done[0] && vector_data_done[1] && fifo_A.size()==0 && fifo_B.size()==0 && fifo_C.size()==0;
 
     }
 
