@@ -1,9 +1,8 @@
 #include "hdc_accelerator_component.hpp"
-#include "data_controller.hpp"
-#include "definitions.hpp"
-#include "hdc_functional_unit.hpp"
 
 void hdc_accelerator_component(unsigned int &vector_size, Op_t &sel_op, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
+
+#pragma HLS DATAFLOW
 
     hls::stream<Data_t> fifo_A, fifo_B, fifo_C;
 
