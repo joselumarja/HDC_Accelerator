@@ -3,7 +3,7 @@
 #include "hdc_accelerator_component.hpp"
 
 #define VECTOR_SIZE 10000
-#define SEL_OP 2
+#define SEL_OP 3
 
 ap_uint<BLOCK_SIZE> read_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> number_elements, unsigned int &counter);
 void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned int &counter);
@@ -71,11 +71,13 @@ int main(){
         	data_response.write(response);
 
         }else{
-        	printf("Peticion de escritura de: %d,  cantidad: %d\n", fifo_id, vector_data);
+        	printf("Peticion de escritura de: %d,  valor: %d\n", fifo_id, vector_data);
 
         	write_data(C, vector_data, c_counter);
         }
     }
+
+    printf("Operación finalizada\n");
 
     return 0;
 }

@@ -6,7 +6,11 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 	//TO DO: INVESTIGAR RESETEO DE ESTAS SEÑALES
     bool on_going_read_request[2], vector_data_done[2];
 
+    bool A_condition = false, B_condition = false, C_condition = false;
+
     Command_t request, response;
+
+    unsigned int state = READ_0;
 
     for(unsigned int i = 0; i<2; i++){
         on_going_read_request[i]=false;
@@ -18,89 +22,153 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
         request = 0;
         response = 0;
 
-        if(fifo_A.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[0]){
+        switch(state){
+            case WAITING_DATA:
 
-            //Read data request
-            request[0] = READ_MODE;
+                if(command_response.read_nb(response)){
 
-            //Fifo id
-            request.range(NUMBER_QUEUES_SIZE, 1) = 0;
+                    bool remaining_data;
+                    ap_uint<NUMBER_QUEUES_SIZE> fifo_id;
+                    ap_uint<BLOCK_SIZE> vector_data;
 
-            //Block size to read
-            request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
+                    remaining_data = response[0];
+                    fifo_id = response.range(NUMBER_QUEUES_SIZE, 1);
+                    vector_data = response.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1);
 
-            command_request.write(request);
+                    switch(fifo_id){
+                        case 0:
 
-            on_going_read_request[0] = true;
+                            for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
+                                fifo_A.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
+                            }
 
-        }else if (fifo_B.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[1]) {
+                            vector_data_done[0] = !remaining_data;
+                            on_going_read_request[0] = false;
+                            break;
 
-            //Read data request
-            request[0] = READ_MODE;
+                        case 1:
+                            for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
+                                fifo_B.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
+                            }
 
-            //Fifo id
-            request.range(NUMBER_QUEUES_SIZE, 1) = 1;
+                            vector_data_done[1] = !remaining_data;
+                            on_going_read_request[1] = false;
+                            break;
 
-            //Block size to read
-            request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
+                    }
+                }
 
-            command_request.write(request);
+            break;
 
-            on_going_read_request[1] = true;
-        
-        }else if (fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty()) {
+            case READ_0:
 
-            ap_uint<BLOCK_SIZE> vector_data = 0;
+                //Read data request
+                request[0] = READ_MODE;
 
-            for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = fifo_C.read();
-            }
+                //Fifo id
+                request.range(NUMBER_QUEUES_SIZE, 1) = 0;
 
-            //Write data request
-            request[0] = WRITE_MODE;
+                //Block size to read
+                request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
 
-            //Fifo id
-            request.range(NUMBER_QUEUES_SIZE, 1) = 2;
+                command_request.write(request);
 
-            //Block data to write
-            request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = vector_data;
+                on_going_read_request[0] = true;
 
-            command_request.write(request);
-            
+            break;
+
+            case READ_1:
+
+                //Read data request
+                request[0] = READ_MODE;
+
+                //Fifo id
+                request.range(NUMBER_QUEUES_SIZE, 1) = 1;
+
+                //Block size to read
+                request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
+
+                command_request.write(request);
+
+                on_going_read_request[1] = true;
+
+            break;
+
+            case WRITE_2:
+
+                ap_uint<BLOCK_SIZE> vector_data = 0;
+
+                for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
+                    vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = fifo_C.read();
+                }
+
+                //Write data request
+                request[0] = WRITE_MODE;
+
+                //Fifo id
+                request.range(NUMBER_QUEUES_SIZE, 1) = 2;
+
+                //Block data to write
+                request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = vector_data;
+
+                command_request.write(request);
+
+            break;
+
         }
 
-        if(command_response.read_nb(response)){
 
-            bool remaining_data;
-            ap_uint<NUMBER_QUEUES_SIZE> fifo_id;
-            ap_uint<BLOCK_SIZE> vector_data;
+        //MAQUINA DE ESTADOS
 
-            remaining_data = response[0];
-            fifo_id = response.range(NUMBER_QUEUES_SIZE, 1);
-            vector_data = response.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1);
+        A_condition = fifo_A.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[0] && !on_going_read_request[0];
+        B_condition = fifo_B.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[1] && !on_going_read_request[1];
+        C_condition = fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty();
 
-            switch(fifo_id){
-                case 0:
+        switch(state){
+            case WAITING_DATA:
+                if(A_condition)
+                    state = READ_0;
+                else if(B_condition)
+                    state = READ_1;
+                else if(C_condition)
+                    state = WRITE_2;
+                else
+                    state = WAITING_DATA;
 
-                    for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                        fifo_A.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
-                    }
+            break;
 
-                    vector_data_done[0] = !remaining_data;
-                    on_going_read_request[0] = false;
-                    break;
+            case READ_0:
+                if (B_condition)
+                    state = READ_1;
+                else if (C_condition)
+                    state = WRITE_2;
+                else
+                    state = WAITING_DATA;
+            break;
 
-                case 1:
-                    for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                        fifo_B.write(vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
-                    }
+            case READ_1:
+                if(C_condition)
+                    state = WRITE_2;
+                else if (A_condition)
+                    state = READ_0;
+                else
+                    state = WAITING_DATA;
+            break;
 
-                    vector_data_done[1] = !remaining_data;
-                    on_going_read_request[1] = false;
-                    break;
+            case WRITE_2:
+                if(A_condition)
+                    state = READ_0;
+                else if(B_condition)
+                    state = READ_1;
+                else
+                    state = WAITING_DATA;
+                
+            break;
 
-            }
         }
+
+        if(vector_data_done[0] && fifo_A.size()==0 && vector_data_done[1] && fifo_B.size()==0 && !(fifo_C.size()==0))
+            break;
 
     }
 
