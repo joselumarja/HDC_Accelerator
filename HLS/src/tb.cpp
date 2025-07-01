@@ -39,6 +39,7 @@ int main(){
     sel_op_stream.write(SEL_OP);
 
     hls::task t_component(hdc_accelerator_component, vector_size_stream, sel_op_stream, data_request, data_response);
+    //hdc_accelerator_component(vector_size_stream, sel_op_stream, data_request, data_response);
 
     while(c_counter < VECTOR_SIZE){
 

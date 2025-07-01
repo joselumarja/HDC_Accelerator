@@ -3,24 +3,24 @@
 
 void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::stream<Data_t> &fifo_C, hls::stream<Command_t> &command_request, hls::stream<Command_t> &command_response){
 
-	//TO DO: INVESTIGAR RESETEO DE ESTAS SEÑALES
-    bool on_going_read_request[2], vector_data_done[2];
+    bool on_going_read_request[2];
+    bool vector_data_done[2];
 
     bool A_condition = false, B_condition = false, C_condition = false;
 
     Command_t request, response;
 
-    unsigned int state = READ_0;
+    CurrentState: unsigned int state = READ_0;
 
     for(unsigned int i = 0; i<2; i++){
         on_going_read_request[i]=false;
         vector_data_done[i]=false;
     }
 
-    while(true){
+    DataMoverLoop: while(true){
 
-        request = 0;
-        response = 0;
+        Request: request = 0;
+        Response: response = 0;
 
         switch(state){
             case WAITING_DATA:
