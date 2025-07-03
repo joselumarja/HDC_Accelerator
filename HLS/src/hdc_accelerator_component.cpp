@@ -1,11 +1,8 @@
 #include "hdc_accelerator_component.hpp"
 
-void hdc_accelerator_component(hls::stream<unsigned int> &vector_size_stream, hls::stream<Op_t> &sel_op_stream, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
+void hdc_accelerator_component(const unsigned int vector_size, const Op_t sel_op, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
 
-#pragma HLS DATAFLOW
-
-	const unsigned int vector_size = vector_size_stream.read();
-	const Op_t sel_op = sel_op_stream.read();
+	#pragma HLS DATAFLOW
 
     hls_thread_local hls::stream<Data_t> fifo_A("fifo A");
     hls_thread_local hls::stream<Data_t> fifo_B("fifo B");

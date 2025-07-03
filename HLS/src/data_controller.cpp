@@ -19,8 +19,8 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
     DataMoverLoop: while(true){
 
-        Request: request = 0;
-        Response: response = 0;
+        request = 0;
+        response = 0;
 
         switch(state){
             case WAITING_DATA:
@@ -33,7 +33,7 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
                     remaining_data = response[0];
                     fifo_id = response.range(NUMBER_QUEUES_SIZE, 1);
-                    vector_data = response.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1);
+                    vector_data = response.range(COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1);
 
                     switch(fifo_id){
                         case 0:
@@ -86,7 +86,7 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
                 request.range(NUMBER_QUEUES_SIZE, 1) = 1;
 
                 //Block size to read
-                request.range( COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
+                request.range(COMMAND_SIZE-1, NUMBER_QUEUES_SIZE+1) = BLOCK_SIZE;
 
                 command_request.write(request);
 
