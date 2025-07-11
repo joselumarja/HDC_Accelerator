@@ -122,7 +122,9 @@ void data_mover(hls::stream<Data_t> &fifo_A, hls::stream<Data_t> &fifo_B, hls::s
 
         A_condition = fifo_A.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[0] && !on_going_read_request[0];
         B_condition = fifo_B.size() < TRANSMISSION_READ_THRESHOLD && !vector_data_done[1] && !on_going_read_request[1];
-        C_condition = fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty();
+
+        //First part to control normal write dataflow, Second part to write lasting elements when all read transactions finish
+        C_condition = (fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty()) || (vector_data_done[0] && vector_data_done[1]);
 
         switch(state){
             case WAITING_DATA:

@@ -6,7 +6,11 @@
 
 #include "definitions.hpp"
 #include "data_controller.hpp"
-#include "hdc_functional_unit.hpp"
+
+#define BINDING 0
+#define BUNDLING 1
+#define PERMUTATION 2
+#define SIMILARITY 3
 
 void hdc_accelerator_component(const unsigned int vector_size, const Op_t sel_op, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response);
 

@@ -17,11 +17,12 @@
 
 #define COMMAND_SIZE NUMBER_QUEUES_SIZE+1+BLOCK_SIZE
 
-#define TRANSMISSION_READ_THRESHOLD 32
+#define TRANSMISSION_READ_THRESHOLD FIFO_SIZE/2
 #define TRANSMISSION_WRITE_THRESHOLD BLOCK_SIZE
 
 typedef ap_uint<2> Op_t;
 typedef ap_uint<DATA_SIZE> Data_t;
+typedef ap_uint<BLOCK_SIZE> Scalar_t;
 
 typedef ap_uint<COMMAND_SIZE> Command_t;
 
