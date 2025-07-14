@@ -20,10 +20,15 @@
 #define TRANSMISSION_READ_THRESHOLD FIFO_SIZE/2
 #define TRANSMISSION_WRITE_THRESHOLD BLOCK_SIZE
 
-typedef ap_uint<2> Op_t;
-typedef ap_uint<DATA_SIZE> Data_t;
-typedef ap_uint<BLOCK_SIZE> Scalar_t;
+typedef ap_uint<NUMBER_QUEUES_SIZE> id_queue_t;
+typedef ap_uint<2> op_t;
+typedef ap_uint<DATA_SIZE> data_t;
+typedef ap_uint<BLOCK_SIZE> block_data_t;
 
-typedef ap_uint<COMMAND_SIZE> Command_t;
+struct Command_t{
+	id_queue_t id_queue;
+	bool last;
+	block_data_t data_block;
+};
 
 #endif
