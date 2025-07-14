@@ -10,7 +10,7 @@
 
 block_data_t read_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> number_elements, unsigned int &counter);
 void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned int &counter);
-void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], bool &finish_flag, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response);
+void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response);
 
 int main(){
 
@@ -84,7 +84,7 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 
 			switch(fifo_id){
 			case 0:
-				printf("Peticion de lectura de: %d,  cantidad: %d\n", fifo_id, vector_data);
+				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
 				vector_data_response = read_data(A, vector_data, a_counter);
 
@@ -96,7 +96,7 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 				break;
 
 			case 1:
-				printf("Peticion de lectura de: %d,  cantidad: %d\n", fifo_id, vector_data);
+				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
 				vector_data_response = read_data(B, vector_data, b_counter);
 
@@ -108,7 +108,7 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 				break;
 
 			case 2:
-				printf("Peticion de escritura de: %d,  valor: %d\n", fifo_id, vector_data);
+				printf("Peticion de escritura de: %d,  valor: %d\n", (int) fifo_id, (int) vector_data);
 
 				write_data(C, vector_data, c_counter);
 				break;

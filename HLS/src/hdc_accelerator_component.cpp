@@ -1,6 +1,8 @@
 #include "hdc_accelerator_component.hpp"
 
 void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
+#pragma HLS STREAM variable=data_response depth=32 type=fifo
+#pragma HLS STREAM variable=data_request depth=32 type=fifo
 
 	#pragma HLS DATAFLOW
 
@@ -94,5 +96,7 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     }
     
     fifo_finish.read();
+
+    //while(data_response.size()>0);
 
 }

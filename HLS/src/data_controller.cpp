@@ -94,6 +94,7 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
                 block_data_t vector_data = 0;
 
                 FifoCForLoopForDataSending:for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
+                    //HAY QUE INVERTIR LOS VALORES DE LOS INDICIES
                     vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = fifo_C.read();
                 }
 
@@ -163,7 +164,6 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
         }
 
         if(vector_data_done[0] && fifo_A.size()==0 && vector_data_done[1] && fifo_B.size()==0 && !(fifo_C.size()==0)){
-        //if(vector_data_done[0] && fifo_A.empty() && vector_data_done[1] && fifo_B.empty() && !(fifo_C.empty())){
 
         	//loop finish_flag
         	finish_flag = true;
