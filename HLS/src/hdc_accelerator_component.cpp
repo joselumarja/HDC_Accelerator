@@ -1,21 +1,21 @@
 #include "hdc_accelerator_component.hpp"
 
-void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
-#pragma HLS STREAM variable=data_response depth=32 type=fifo
-#pragma HLS STREAM variable=data_request depth=32 type=fifo
+void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
 
 	#pragma HLS DATAFLOW
 
-    hls_thread_local hls::stream<data_t> fifo_A("fifo A");
-    hls_thread_local hls::stream<data_t> fifo_B("fifo B");
-    hls_thread_local hls::stream<data_t> fifo_C("fifo C");
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
 
     hls_thread_local hls::stream<bool> fifo_finish("finish signal");
 
     data_t A, B, C, shifting_register, overflow_block_bits;
     block_data_t similarity_counter;
 
-    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_finish, data_request, data_response);
+    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_finish, command_request, command_response);
+
+    printf("vector_size:%d\n", vector_size);
 
     switch(sel_op){
     case BINDING:
@@ -95,8 +95,7 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
 		break;
     }
     
-    fifo_finish.read();
-
-    //while(data_response.size()>0);
+    fifo_finish.write(true);
+    //fifo_finish.read();
 
 }

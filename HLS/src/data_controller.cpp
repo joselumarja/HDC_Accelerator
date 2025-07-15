@@ -1,10 +1,12 @@
 #include "data_controller.hpp"
 #include "definitions.hpp"
 
-void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::stream<data_t> &fifo_C, hls::stream<bool> &fifo_finish, hls::stream<Command_t> &command_request, hls::stream<Command_t> &command_response){
+void data_mover(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C, hls::stream<bool> &fifo_finish, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
 
     bool on_going_read_request[2];
     bool vector_data_done[2];
+
+    bool vector_data_done_debug[2];
 
     bool A_condition = false, B_condition = false, C_condition = false;
 
@@ -13,10 +15,13 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
     CurrentState: unsigned int state = READ_0;
 
     bool finish_flag = false;
+    bool component_finish = false;
 
     for(unsigned int i = 0; i<2; i++){
         on_going_read_request[i]=false;
         vector_data_done[i]=false;
+
+        vector_data_done_debug[i]=false;
     }
 
     DataMoverLoop: while(!finish_flag){
@@ -38,6 +43,10 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
                             }
 
                             vector_data_done[0] = response.last;
+
+                            if(response.last)
+                            	vector_data_done_debug[0] = true;
+
                             on_going_read_request[0] = false;
                             break;
 
@@ -47,15 +56,23 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
                             }
 
                             vector_data_done[1] = response.last;
+
+                            if(response.last)
+                            	vector_data_done_debug[1] = true;
+
                             on_going_read_request[1] = false;
                             break;
 
                     }
-                }
+                }else
+                	fifo_finish.read_nb(component_finish);
 
             break;
 
             case READ_0:
+
+            	if(on_going_read_request[0])
+            		printf("Entrando en READ_0 cuando ya se ha realizado una peticion\n");
 
                 //Always false
                 request.last = false;
@@ -73,6 +90,9 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
             break;
 
             case READ_1:
+
+            	if(on_going_read_request[1])
+            		printf("Entrando en READ_1 cuando ya se ha realizado una peticion\n");
 
             	//Always false
 				request.last = false;
@@ -94,7 +114,6 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
                 block_data_t vector_data = 0;
 
                 FifoCForLoopForDataSending:for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
-                    //HAY QUE INVERTIR LOS VALORES DE LOS INDICIES
                     vector_data.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = fifo_C.read();
                 }
 
@@ -121,6 +140,16 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
 
         //First part to control normal write dataflow, Second part to write lasting elements when all read transactions finish
         C_condition = (fifo_C.size() > TRANSMISSION_WRITE_THRESHOLD && !fifo_C.empty()) || (vector_data_done[0] && vector_data_done[1]);
+
+
+        if(vector_data_done[0] != vector_data_done_debug[0]){
+        	printf("Valor de finalizacion fifo 0 no consistente\n");
+        	printf("done:%d debug:%d A:%d B:%d C:%d\n", vector_data_done[0], vector_data_done_debug[0], A_condition, B_condition, C_condition);
+        }
+        if(vector_data_done[1] != vector_data_done_debug[1]){
+			printf("Valor de finalizacion fifo 1 no consistente\n");
+			printf("done:%d debug:%d A:%d B:%d C:%d\n", vector_data_done[1], vector_data_done_debug[1], A_condition, B_condition, C_condition);
+		}
 
         switch(state){
             case WAITING_DATA:
@@ -163,7 +192,7 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
 
         }
 
-        if(vector_data_done[0] && fifo_A.size()==0 && vector_data_done[1] && fifo_B.size()==0 && !(fifo_C.size()==0)){
+        if(component_finish && fifo_C.size()==0){
 
         	//loop finish_flag
         	finish_flag = true;
@@ -173,10 +202,9 @@ void data_mover(hls::stream<data_t> &fifo_A, hls::stream<data_t> &fifo_B, hls::s
 			command_request.write(request);
 
         	//module finish_flag
-        	fifo_finish.write(finish_flag);
+        	//fifo_finish.write(finish_flag);
 
         }
-
 
     }
 

@@ -5,12 +5,12 @@
 #include "definitions.hpp"
 #include "hdc_accelerator_component.hpp"
 
-#define VECTOR_SIZE 1024
+#define VECTOR_SIZE 32
 #define SEL_OP 3
 
 block_data_t read_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> number_elements, unsigned int &counter);
 void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned int &counter);
-void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response);
+void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response);
 
 int main(){
 
@@ -28,16 +28,25 @@ int main(){
     unsigned int vector_size = VECTOR_SIZE/DATA_SIZE;
     op_t sel_op = SEL_OP;
 
-    hls::stream<Command_t> data_request;
-    hls::stream<Command_t> data_response;
+    hls::stream<Command_t, FIFO_SIZE> command_request;
+    hls::stream<Command_t, FIFO_SIZE> command_response;
 
-    std::thread t_memory_controller(memory_controller, std::ref(A), std::ref(B), std::ref(C), std::ref(data_request), std::ref(data_response));
+    std::thread t_memory_controller(memory_controller, std::ref(A), std::ref(B), std::ref(C), std::ref(command_request), std::ref(command_response));
 
-    hdc_accelerator_component(vector_size, sel_op, data_request, data_response);
+    hdc_accelerator_component(vector_size, sel_op, command_request, command_response);
 
     t_memory_controller.join();
 
     printf("Operación finalizada\n");
+
+    printf("Command request: %d  Command response: %d\n", command_request.size(), command_response.size());
+
+    int size = command_request.size();
+    for(int i=0; i<size; i++){
+    	Command_t request = command_request.read();
+
+    	printf("Peticion de: %d,  valor: %d, ultimo:%d\n", (int) request.id_queue, (int) request.data_block, (int) request.last);
+    }
 
     return 0;
 }
@@ -60,11 +69,15 @@ void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned
 	}
 }
 
-void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t> &data_request, hls::stream<Command_t> &data_response){
+void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
 
 	unsigned int a_counter=0, b_counter=0, c_counter=0;
 
 	bool finish_flag=false;
+
+	bool vector_finish[2];
+	vector_finish[0]=false;
+	vector_finish[1]=false;
 
 	Command_t request, response;
 
@@ -74,7 +87,7 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 
 	while(!finish_flag){
 
-		request = data_request.read();
+		request = command_request.read();
 
 		finish_flag = request.last;
 
@@ -86,25 +99,39 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 			case 0:
 				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
+				if(vector_finish[0])
+					printf("Peticion de lectura de 0 cuando ya se ha enviado el bit de finalizacion\n");
+
 				vector_data_response = read_data(A, vector_data, a_counter);
 
 				response.last = a_counter>=VECTOR_SIZE;
+
+				if(response.last)
+					vector_finish[0] = true;
+
 				response.id_queue = fifo_id;
 				response.data_block = vector_data_response;
 
-				data_response.write(response);
+				command_response.write(response);
 				break;
 
 			case 1:
 				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
+				if(vector_finish[1])
+					printf("Peticion de lectura de 0 cuando ya se ha enviado el bit de finalizacion\n");
+
 				vector_data_response = read_data(B, vector_data, b_counter);
 
 				response.last = b_counter>=VECTOR_SIZE;
+
+				if(response.last)
+					vector_finish[1] = true;
+
 				response.id_queue = fifo_id;
 				response.data_block = vector_data_response;
 
-				data_response.write(response);
+				command_response.write(response);
 				break;
 
 			case 2:
