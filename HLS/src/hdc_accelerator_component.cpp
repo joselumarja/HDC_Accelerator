@@ -8,14 +8,13 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
     hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
 
-    hls_thread_local hls::stream<bool> fifo_finish("finish signal");
+    hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
+    hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
 
     data_t A, B, C, shifting_register, overflow_block_bits;
     block_data_t similarity_counter;
 
-    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_finish, command_request, command_response);
-
-    printf("vector_size:%d\n", vector_size);
+    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
 
     switch(sel_op){
     case BINDING:
@@ -95,7 +94,9 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
 		break;
     }
     
-    fifo_finish.write(true);
-    //fifo_finish.read();
+    //Handshake in component termination
+    fifo_accelerator_finish.write(true);
+    fifo_data_mover_finish.read();
+
 
 }
