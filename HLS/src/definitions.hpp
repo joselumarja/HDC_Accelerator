@@ -20,6 +20,9 @@
 #define TRANSMISSION_READ_THRESHOLD FIFO_SIZE/2
 #define TRANSMISSION_WRITE_THRESHOLD BLOCK_SIZE
 
+#define VECTOR_SIZE 32
+#define SEL_OP 0
+
 typedef ap_uint<NUMBER_QUEUES_SIZE> id_queue_t;
 typedef ap_uint<2> op_t;
 typedef ap_uint<DATA_SIZE> data_t;

@@ -75,13 +75,8 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 
 	bool finish_flag=false;
 
-	bool vector_finish[2];
-	vector_finish[0]=false;
-	vector_finish[1]=false;
-
 	Command_t request, response;
 
-	bool remaining_data, mode;
 	id_queue_t fifo_id;
 	block_data_t vector_data, vector_data_response;
 
@@ -99,18 +94,10 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 			case 0:
 				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
-				if(vector_finish[0])
-					printf("Peticion de lectura de 0 cuando ya se ha enviado el bit de finalizacion\n");
 
 				vector_data_response = read_data(A, vector_data, a_counter);
 
 				response.last = a_counter>=VECTOR_SIZE;
-
-				if(response.last){
-					vector_finish[0] = true;
-                    printf("Enviado bit de terminacion para 0\n");
-                }
-
 				response.id_queue = fifo_id;
 				response.data_block = vector_data_response;
 
@@ -120,18 +107,9 @@ void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE],
 			case 1:
 				printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
 
-				if(vector_finish[1])
-					printf("Peticion de lectura de 1 cuando ya se ha enviado el bit de finalizacion\n");
-
 				vector_data_response = read_data(B, vector_data, b_counter);
 
 				response.last = b_counter>=VECTOR_SIZE;
-
-				if(response.last){
-					vector_finish[1] = true;
-                    printf("Enviado bit de terminacion para 1\n");
-                }
-
 				response.id_queue = fifo_id;
 				response.data_block = vector_data_response;
 

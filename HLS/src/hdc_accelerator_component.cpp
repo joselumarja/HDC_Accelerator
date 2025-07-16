@@ -1,6 +1,10 @@
 #include "hdc_accelerator_component.hpp"
 
-void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
+//void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
+void hdc_accelerator_component(hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
+
+	const unsigned int vector_size = VECTOR_SIZE/DATA_SIZE;
+	const op_t sel_op = SEL_OP;
 
 	#pragma HLS DATAFLOW
 
@@ -11,6 +15,7 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
     hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
 
+    unsigned int i = 0;
     data_t A, B, C, shifting_register, overflow_block_bits;
     block_data_t similarity_counter;
 
@@ -19,14 +24,28 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     switch(sel_op){
     case BINDING:
 
-    	for(unsigned int i=0; i<vector_size; i++){
+    	/*for(unsigned int i=0; i<vector_size; i++){
     		A = fifo_A.read();
     		B = fifo_B.read();
 
     		C = A ^ B;
 
     		fifo_C.write(C);
+    	}*/
+
+    	while (i < vector_size) {
+    	    // Verifica que hay datos en A y B, y espacio en C
+    	    if (!fifo_A.empty() && !fifo_B.empty() && !fifo_C.full()) {
+    	        A = fifo_A.read();
+    	        B = fifo_B.read();
+
+    	        C = A ^ B;
+    	        fifo_C.write(C);
+
+    	        i++;
+    	    }
     	}
+
     	break;
 
     case BUNDLING:
@@ -97,6 +116,5 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     //Handshake in component termination
     fifo_accelerator_finish.write(true);
     fifo_data_mover_finish.read();
-
 
 }
