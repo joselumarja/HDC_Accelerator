@@ -179,7 +179,7 @@ void data_mover(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO
             fifo_data_mover_finish.write(true);
 
             //Espera activa al finalizar el movimiento de datos para que no se resetee la tarea
-            while(true);
+            //while(true);
             //return;
         }
 

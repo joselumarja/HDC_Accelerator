@@ -1,25 +1,14 @@
 #include "hdc_accelerator_component.hpp"
 
 //void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
-void hdc_accelerator_component(hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
+void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C, hls::stream<bool> &fifo_accelerator_finish, hls::stream<bool> &fifo_data_mover_finish){
 
 	const unsigned int vector_size = VECTOR_SIZE/DATA_SIZE;
 	const op_t sel_op = SEL_OP;
 
-	#pragma HLS DATAFLOW
-
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
-
-    hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
-    hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
-
     unsigned int i = 0;
     data_t A, B, C, shifting_register, overflow_block_bits;
     block_data_t similarity_counter;
-
-    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
 
     switch(sel_op){
     case BINDING:

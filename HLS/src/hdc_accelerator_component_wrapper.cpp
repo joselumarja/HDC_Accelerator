@@ -19,7 +19,16 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
     hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_request;
     hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_response;
 
-    hls_thread_local hls::task t_accelerator_component(hdc_accelerator_component, command_request, command_response);
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
+    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
+
+    hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
+    hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
+
+    hls_thread_local hls::task t_accelerator_component(hdc_accelerator_component, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish);
+
+    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
 
 	MemoryControllerLoop: while(!finish_flag){
 
