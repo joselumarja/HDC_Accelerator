@@ -10,16 +10,16 @@ void data_mover(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO
 
     Command_t request, response;
 
-    CurrentState: unsigned int state = READ_0;
+    CurrentState: unsigned int state = WAITING_DATA;
 
-    bool finish_flag = false;
+    bool finish_flag = false, finish = false;
 
     for(unsigned int i = 0; i<2; i++){
         on_going_read_request[i]=false;
         vector_data_done[i]=false;
     }
 
-    DataMoverLoop: while(true){
+    DataMoverLoop: while(!finish){
 
         switch(state){
 
@@ -179,8 +179,8 @@ void data_mover(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO
             fifo_data_mover_finish.write(true);
 
             //Espera activa al finalizar el movimiento de datos para que no se resetee la tarea
-            while(true);
-            //return;
+            //while(true);
+            finish = true;
         }
 
     }

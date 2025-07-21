@@ -13,7 +13,6 @@ int main(){
 	unsigned int B[VECTOR_SIZE];
 	unsigned int C[VECTOR_SIZE];
 
-
 	for(unsigned int i=0; i<VECTOR_SIZE; i++){
 		A[i]=1;
 		B[i]=1;
