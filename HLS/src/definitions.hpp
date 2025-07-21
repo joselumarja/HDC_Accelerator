@@ -1,6 +1,14 @@
 #ifndef _DEFINITIONS_
 #define _DEFINITIONS_
 
+#ifndef __SYNTHESIS__
+	#include <stdio.h>
+
+    #define PRINT(x) printf x
+#else
+    #define PRINT(x)
+#endif
+
 #include <ap_int.h>
 
 #define DATA_SIZE 8
@@ -22,6 +30,12 @@
 
 #define VECTOR_SIZE 32
 #define SEL_OP 0
+
+#ifndef __SYNTHESIS__
+    #define PRINT(x) printf x
+#else
+    #define PRINT(x)
+#endif
 
 typedef ap_uint<NUMBER_QUEUES_SIZE> id_queue_t;
 typedef ap_uint<2> op_t;

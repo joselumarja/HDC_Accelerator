@@ -5,7 +5,7 @@ void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned
 
 void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_t sel_op, unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE]){
 
-#pragma HLS DATAFLOW
+//#pragma HLS DATAFLOW
 
 	unsigned int a_counter=0, b_counter=0, c_counter=0;
 
@@ -16,19 +16,38 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 	id_queue_t fifo_id;
 	block_data_t vector_data, vector_data_response;
 
-    hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_request;
-    hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_response;
+#ifdef __SYNTHESIS__
 
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
-    hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
+	hls::stream<Command_t, FIFO_SIZE> command_request;
+	hls::stream<Command_t, FIFO_SIZE> command_response;
 
-    hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
-    hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
+	hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
+	hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
+	hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
 
-    hls_thread_local hls::task t_accelerator_component(hdc_accelerator_component, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish);
+	hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
+	hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
 
-    hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
+	hdc_accelerator_component(fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish);
+
+	data_mover(fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
+
+#else
+#pragma HLS DATAFLOW
+	hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_request;
+	hls_thread_local hls::stream<Command_t, FIFO_SIZE> command_response;
+
+	hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_A("fifo A");
+	hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_B("fifo B");
+	hls_thread_local hls::stream<data_t, FIFO_SIZE> fifo_C("fifo C");
+
+	hls_thread_local hls::stream<bool> fifo_accelerator_finish("accelerator finish signal");
+	hls_thread_local hls::stream<bool> fifo_data_mover_finish("data mover finish signal");
+
+	hls_thread_local hls::task t_accelerator_component(hdc_accelerator_component, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish);
+
+	hls_thread_local hls::task t_data_mover(data_mover, fifo_A, fifo_B, fifo_C, fifo_accelerator_finish, fifo_data_mover_finish, command_request, command_response);
+#endif
 
 	MemoryControllerLoop: while(!finish_flag){
 
@@ -42,7 +61,7 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 
 			switch(fifo_id){
 			case 0:
-				//printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
+				PRINT(("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data));
 
 				vector_data_response = read_data(A, vector_data, a_counter);
 
@@ -54,7 +73,7 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 				break;
 
 			case 1:
-				//printf("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data);
+				PRINT(("Peticion de lectura de: %d,  cantidad: %d\n", (int) fifo_id, (int) vector_data));
 
 				vector_data_response = read_data(B, vector_data, b_counter);
 
@@ -66,7 +85,7 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 				break;
 
 			case 2:
-				//printf("Peticion de escritura de: %d,  valor: %d\n", (int) fifo_id, (int) vector_data);
+				PRINT(("Peticion de escritura de: %d,  valor: %d\n", (int) fifo_id, (int) vector_data));
 
 				write_data(C, vector_data, c_counter);
 				break;

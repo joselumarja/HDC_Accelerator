@@ -2,6 +2,9 @@
 
 //void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response){
 void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C, hls::stream<bool> &fifo_accelerator_finish, hls::stream<bool> &fifo_data_mover_finish){
+#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_A
+#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_B
+#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_C
 
 	const unsigned int vector_size = VECTOR_SIZE/DATA_SIZE;
 	const op_t sel_op = SEL_OP;
@@ -10,17 +13,9 @@ void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stre
     data_t A, B, C, shifting_register, overflow_block_bits;
     block_data_t similarity_counter;
 
+    //SINTAXIS DE LA ALU PARA QUE SEA FRIENDLY CON FLUJOS DE DATOS
     switch(sel_op){
     case BINDING:
-
-    	/*for(unsigned int i=0; i<vector_size; i++){
-    		A = fifo_A.read();
-    		B = fifo_B.read();
-
-    		C = A ^ B;
-
-    		fifo_C.write(C);
-    	}*/
 
     	while (i < vector_size) {
     	    // Verifica que hay datos en A y B, y espacio en C
@@ -39,17 +34,23 @@ void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stre
 
     case BUNDLING:
 
-    	for(unsigned int i=0; i<vector_size; i++){
-    		A = fifo_A.read();
-			B = fifo_B.read();
+    	while(i<vector_size){
+    		if (!fifo_A.empty() && !fifo_B.empty() && !fifo_C.full()) {
+				A = fifo_A.read();
+				B = fifo_B.read();
 
-			C = A | B;
+				C = A | B;
 
-			fifo_C.write(C);
+				fifo_C.write(C);
+
+				i++;
+			}
     	}
     	break;
 
     case PERMUTATION:
+
+    	while(fifo_A.empty() || fifo_B.empty());
 
     	//Cantidad de shift a la izquierda (MAXIMO DATA_SIZE)
     	B = fifo_B.read();
@@ -60,16 +61,22 @@ void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stre
 
     	shifting_register = A << B;
 
-    	for(unsigned int i=1; i<vector_size; i++){
-    		A = fifo_A.read();
+    	while(i<vector_size){
+    		if(!fifo_A.empty() && !fifo_C.full()){
+    			A = fifo_A.read();
 
-    		//Curent block is shifted block plus next block overflow
-    		C = shifting_register | A >> (DATA_SIZE-B);
+				//Curent block is shifted block plus next block overflow
+				C = shifting_register | A >> (DATA_SIZE-B);
 
-    		shifting_register = A << B;
+				shifting_register = A << B;
 
-    		fifo_C.write(C);
+				fifo_C.write(C);
+
+				i++;
+    		}
     	}
+
+    	while(fifo_C.full());
 
     	C = shifting_register | overflow_block_bits;
 
@@ -82,19 +89,24 @@ void hdc_accelerator_component(hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stre
     	//Reset counter value
     	similarity_counter = 0;
 
-    	for(unsigned int i=0; i<vector_size; i++){
-			A = fifo_A.read();
-			B = fifo_B.read();
+    	while(i<vector_size){
+    	    if(!fifo_A.empty() && !fifo_B.empty()){
+				A = fifo_A.read();
+				B = fifo_B.read();
 
-			C = A ^ B;
+				C = A ^ B;
 
-			//Popcount
-			for(unsigned int j=0; j<DATA_SIZE; j++){
-				if(C[j])
-					similarity_counter ++;
-			}
+				//Popcount
+				for(unsigned int j=0; j<DATA_SIZE; j++){
+					if(C[j])
+						similarity_counter ++;
+				}
+
+				i++;
+    	    }
 		}
 
+    	//Solo puede bloquearse si el tamaño del stream es menor que las iteraciones del bucle
     	for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
     		fifo_C.write(similarity_counter.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE));
     	}
