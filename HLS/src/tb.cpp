@@ -3,10 +3,6 @@
 #include "definitions.hpp"
 #include "hdc_accelerator_component_wrapper.hpp"
 
-block_data_t read_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> number_elements, unsigned int &counter);
-void write_data(unsigned int V[VECTOR_SIZE], ap_uint<BLOCK_SIZE> block, unsigned int &counter);
-void memory_controller(unsigned int A[VECTOR_SIZE], unsigned int B[VECTOR_SIZE], unsigned int C[VECTOR_SIZE], hls::stream<Command_t, FIFO_SIZE> &command_request, hls::stream<Command_t, FIFO_SIZE> &command_response);
-
 int main(){
 
 	unsigned int A[VECTOR_SIZE];

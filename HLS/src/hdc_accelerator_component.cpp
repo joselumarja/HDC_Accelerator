@@ -1,9 +1,6 @@
 #include "hdc_accelerator_component.hpp"
 
 void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C, hls::stream<bool> &fifo_accelerator_finish, hls::stream<bool> &fifo_data_mover_finish){
-#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_A
-#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_B
-#pragma HLS INTERFACE mode=ap_ctrl_hs depth=FIFO_SIZE port=fifo_C
 
     unsigned int i = 0;
     data_t A, B, C, shifting_register, overflow_block_bits;
@@ -112,6 +109,8 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     
     //Syncronization in component termination
     fifo_accelerator_finish.write(true);
+
+    while(fifo_data_mover_finish.empty());
     fifo_data_mover_finish.read();
 
 }
