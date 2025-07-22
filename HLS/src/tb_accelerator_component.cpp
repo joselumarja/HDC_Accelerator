@@ -39,9 +39,9 @@ int main(){
 
 	while(!fifo_accelerator_finish.read_nb(finish_flag));
 
-    //printf("Operación finalizada\n");
+    printf("Operación finalizada\n");
 
-    //printf("A:%d B:%d C:%d\n", (int) fifo_A.size(), (int) fifo_B.size(), (int) fifo_C.size());
+    printf("A:%d B:%d C:%d\n", (int) fifo_A.size(), (int) fifo_B.size(), (int) fifo_C.size());
 
     return 0;
 }
