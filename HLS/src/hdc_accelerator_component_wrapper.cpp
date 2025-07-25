@@ -16,6 +16,7 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 
 #ifdef __SYNTHESIS__
 
+#pragma HLS DATAFLOW
 	hls::stream<Command_t, FIFO_SIZE> command_request;
 	hls::stream<Command_t, FIFO_SIZE> command_response;
 
@@ -48,8 +49,6 @@ void hdc_accelerator_component_wrapper(const unsigned int vector_size, const op_
 
 	MemoryControllerLoop: while(!finish_flag){
 
-		while(command_request.empty());
-		
 		request = command_request.read();
 
 		finish_flag = request.last;

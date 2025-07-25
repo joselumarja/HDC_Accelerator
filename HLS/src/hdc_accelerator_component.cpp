@@ -10,40 +10,29 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     switch(sel_op){
     case BINDING:
 
-    	BindingOpControlLoop: while (i < vector_size) {
-    	    // Verifica que hay datos en A y B, y espacio en C
-    	    if (!fifo_A.empty() && !fifo_B.empty() && !fifo_C.full()) {
-    	        A = fifo_A.read();
-    	        B = fifo_B.read();
+    	BindingOpControlLoop: for(i=0; i<vector_size; i++){
+			A = fifo_A.read();
+    	    B = fifo_B.read();
 
-    	        C = A ^ B;
-    	        fifo_C.write(C);
-
-    	        i++;
-    	    }
-    	}
+    	    C = A ^ B;
+    	    fifo_C.write(C);			
+		}
 
     	break;
 
     case BUNDLING:
 
-    	BundlingOpControlLoop: while(i < vector_size){
-    		if (!fifo_A.empty() && !fifo_B.empty() && !fifo_C.full()) {
-				A = fifo_A.read();
-				B = fifo_B.read();
+    	BundlingOpControlLoop: for(i=0; i<vector_size; i++){
+			A = fifo_A.read();
+			B = fifo_B.read();
 
-				C = A | B;
+			C = A | B;
 
-				fifo_C.write(C);
-
-				i++;
-			}
-    	}
+			fifo_C.write(C);
+		}
     	break;
 
     case PERMUTATION:
-
-    	PermutationOpReadyReadLoop: while(fifo_A.empty() || fifo_B.empty());
 
     	//Cantidad de shift a la izquierda (MAXIMO DATA_SIZE)
     	B = fifo_B.read();
@@ -54,22 +43,17 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
 
     	shifting_register = A << B;
 
-    	PermutationOpControlLoop: while(i < vector_size){
-    		if(!fifo_A.empty() && !fifo_C.full()){
-    			A = fifo_A.read();
+    	PermutationOpControlLoop: for(i=0; i<vector_size-1; i++){
 
-				//Curent block is shifted block plus next block overflow
-				C = shifting_register | A >> (DATA_SIZE-B);
+			A = fifo_A.read();
 
-				shifting_register = A << B;
+			//Curent block is shifted block plus next block overflow
+			C = shifting_register | A >> (DATA_SIZE-B);
 
-				fifo_C.write(C);
+			shifting_register = A << B;
 
-				i++;
-    		}
+			fifo_C.write(C);
     	}
-
-    	PermutationOpReadyWriteLoop: while(fifo_C.full());
 
     	C = shifting_register | overflow_block_bits;
 
@@ -82,21 +66,17 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     	//Reset counter value
     	similarity_counter = 0;
 
-    	SimilarityOpControlLoop: while(i<vector_size){
-    	    if(!fifo_A.empty() && !fifo_B.empty()){
-				A = fifo_A.read();
-				B = fifo_B.read();
+    	SimilarityOpControlLoop: for(i=0; i<vector_size; i++){
+			A = fifo_A.read();
+			B = fifo_B.read();
 
-				C = A ^ B;
+			C = A ^ B;
 
-				//Popcount
-				PopCountOperationLoop: for(unsigned int j=0; j<DATA_SIZE; j++){
-					if(C[j])
-						similarity_counter ++;
-				}
-
-				i++;
-    	    }
+			//Popcount
+			PopCountOperationLoop: for(unsigned int j=0; j<DATA_SIZE; j++){
+				if(C[j])
+					similarity_counter ++;
+			}
 		}
 
     	//Solo puede bloquearse si el tamaño del stream es menor que las iteraciones del bucle
@@ -109,8 +89,6 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     
     //Syncronization in component termination
     fifo_accelerator_finish.write(true);
-
-    while(fifo_data_mover_finish.empty());
     fifo_data_mover_finish.read();
 
 }
