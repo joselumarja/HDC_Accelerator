@@ -2,7 +2,6 @@
 #define _HDC_ACCELERATOR_COMPONENT_
 
 #include <hls_stream.h>
-#include <hls_task.h>
 
 #include "definitions.hpp"
 #include "data_controller.hpp"
@@ -12,6 +11,13 @@
 #define PERMUTATION 2
 #define SIMILARITY 3
 
-void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<Command_t, FIFO_SIZE> &data_request, hls::stream<Command_t, FIFO_SIZE> &data_response);
+#define FIFO_SIZE 64
+#define BLOCK_SIZE 16
+
+#define DATA_SIZE 8
+typedef ap_uint<DATA_SIZE> data_t;
+
+
+void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C);
 
 #endif
