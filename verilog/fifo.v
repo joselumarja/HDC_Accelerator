@@ -9,7 +9,7 @@ module fifo #(
     input  wire                 rd_en,     // Read enable
     input  wire [DATA_WIDTH-1:0] din,      // Data in
     output reg  [DATA_WIDTH-1:0] dout,     // Data out
-    output reg  [ADDR_WIDTH:0]  size,
+    output reg  [ADDR_WIDTH:0]  size,      // Number elements in fifo
     output wire                 full,
     output wire                 empty
 );
@@ -31,7 +31,7 @@ module fifo #(
         if (rst) begin
             wr_ptr <= 0;
         end else if (wr_en && !full) begin
-            mem[wr_ptr[ADDR_WIDTH-1:0]] <= din;
+            mem[wr_ptr] <= din;
             wr_ptr <= wr_ptr + 1;
         end
     end
@@ -42,7 +42,7 @@ module fifo #(
             rd_ptr <= 0;
             dout   <= 0;
         end else if (rd_en && !empty) begin
-            dout <= mem[rd_ptr[ADDR_WIDTH-1:0]];
+            dout <= mem[rd_ptr];
             rd_ptr <= rd_ptr + 1;
         end
     end

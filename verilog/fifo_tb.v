@@ -60,6 +60,7 @@ module fifo_tb;
             if (!full) begin
                 wr_en = 1;
                 din = i;
+                #2
                 $display("Write: %d", din);
                 $display("Size: %d", size);
             end
@@ -67,6 +68,7 @@ module fifo_tb;
         wr_en = 0;
 
         @(posedge clk);
+        $display("Size: %d", size);
         $display("FULL = %b (esperado: 1)", full);
 
         #10;
@@ -77,7 +79,7 @@ module fifo_tb;
             @(posedge clk);
             if (!empty) begin
                 rd_en = 1;
-                @(posedge clk); // Esperar un ciclo para que se actualice dout
+                #2
                 $display("Read: %d", dout);
                 $display("Size: %d", size);
             end
@@ -85,6 +87,7 @@ module fifo_tb;
         rd_en = 0;
 
         @(posedge clk);
+        $display("Size: %d", size);
         $display("EMPTY = %b (esperado: 1)", empty);
 
         $display("\n--- TEST COMPLETADO ---");
