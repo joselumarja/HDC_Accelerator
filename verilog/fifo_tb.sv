@@ -19,6 +19,9 @@ module fifo_tb;
     wire [ADDR_WIDTH:0] size;
     wire full;
     wire empty;
+    
+    wire [ADDR_WIDTH:0] wr_ptr;
+    wire [ADDR_WIDTH:0] rd_ptr;
 
     // Instancia de la FIFO
     fifo #(
@@ -33,7 +36,9 @@ module fifo_tb;
         .dout(dout),
         .size(size),
         .full(full),
-        .empty(empty)
+        .empty(empty),
+        .wr_ptr_debug(wr_ptr),
+        .rd_ptr_debug(rd_ptr)
     );
 
     // Reloj
@@ -71,7 +76,7 @@ module fifo_tb;
         $display("Size: %d", size);
         $display("FULL = %b (esperado: 1)", full);
 
-        #10;
+        #20;
 
         $display("\n--- LEYENDO DATOS ---");
         // Leer hasta que esté vacía
@@ -89,6 +94,47 @@ module fifo_tb;
         @(posedge clk);
         $display("Size: %d", size);
         $display("EMPTY = %b (esperado: 1)", empty);
+        
+        $display("\n--- ESCRITURA Y LECTURA CONCURRENTES ---");
+        
+        wr_en = 1;
+        
+        for (i = 0; i < DEPTH/2; i = i + 1) begin
+            @(posedge clk);
+            if (!full) begin
+                din = i;
+                #2
+                $display("Write: %d", din);
+                $display("Size: %d", size);
+            end
+        end
+        
+        wr_en = 0;
+        
+        #10
+        
+        wr_en = 1;
+        rd_en = 1;
+        
+        for (i = 0; i < DEPTH; i = i + 1) begin
+            @(posedge clk);
+            if (!full) begin
+                din = i;
+                $display("Write: %d", din);
+                $display("Read: %d", dout);
+                $display("Size: %d", size);
+            end
+        end
+        
+        wr_en = 0;
+        
+        for (i = 0; i < DEPTH; i = i + 1) begin
+            @(posedge clk);
+            if (!full) begin
+                $display("Read: %d", dout);
+                $display("Size: %d", size);
+            end
+        end
 
         $display("\n--- TEST COMPLETADO ---");
         $stop;

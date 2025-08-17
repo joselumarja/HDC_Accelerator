@@ -9,9 +9,12 @@ module fifo #(
     input  wire                 rd_en,     // Read enable
     input  wire [DATA_WIDTH-1:0] din,      // Data in
     output reg  [DATA_WIDTH-1:0] dout,     // Data out
-    output reg  [ADDR_WIDTH:0]  size,      // Number elements in fifo
+    output wire  [ADDR_WIDTH:0]  size,      // Number elements in fifo
     output wire                 full,
-    output wire                 empty
+    output wire                 empty,
+    output wire [ADDR_WIDTH:0] wr_ptr_debug,
+    output wire [ADDR_WIDTH:0] rd_ptr_debug
+    
 );
 
     // Memory to store FIFO data
@@ -25,6 +28,11 @@ module fifo #(
 
     assign full  = (fifo_count == DEPTH);
     assign empty = (fifo_count == 0);
+    assign size = fifo_count;
+    
+    //debug
+    assign wr_ptr_debug = wr_ptr;
+    assign rd_ptr_debug = rd_ptr;
 
     // Write logic
     always @(posedge clk) begin
@@ -51,15 +59,15 @@ module fifo #(
     always @(posedge clk) begin
         if (rst) begin
             fifo_count <= 0;
-        end else if (rd_en && !empty) begin
-            fifo_count <= fifo_count - 1;
-        end else if (wr_en && !full) begin
-            fifo_count <= fifo_count + 1;
+        end else begin
+            case ({wr_en && !full, rd_en && !empty})
+                2'b10: fifo_count <= fifo_count + 1; // Solo escritura
+                2'b01: fifo_count <= fifo_count - 1; // Solo lectura
+                2'b11: fifo_count <= fifo_count;     // Lectura y escritura simultánea → el tamaño no cambia
+                default: fifo_count <= fifo_count;   // Sin operaciones
+            endcase
         end
     end
-    
-    always @(fifo_count) begin
-        size <= fifo_count;
-    end
+
 
 endmodule
