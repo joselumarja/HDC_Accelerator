@@ -21,8 +21,9 @@ module serializer #(
         COMPLETE
     } state_t;
 
-    state_t state, next_state;
-    reg [$clog2(SEGMENTS):0] segment_cnt;
+    state_t state = IDLE, next_state = IDLE;
+    
+    reg [$clog2(SEGMENTS):0] segment_cnt = 0;
     reg [IN_WIDTH-1:0] shift_reg;
 
     always @(posedge clk) begin

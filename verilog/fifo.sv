@@ -9,9 +9,9 @@ module fifo #(
     input  wire                 rd_en,     // Read enable
     input  wire [DATA_WIDTH-1:0] din,      // Data in
     output reg  [DATA_WIDTH-1:0] dout,     // Data out
-    output wire  [ADDR_WIDTH:0]  size,      // Number elements in fifo
-    output wire                 full,
-    output wire                 empty,
+    output reg  [ADDR_WIDTH:0]  size,      // Number elements in fifo
+    output reg                 full,
+    output reg                 empty,
     output wire [ADDR_WIDTH:0] wr_ptr_debug,
     output wire [ADDR_WIDTH:0] rd_ptr_debug
     
@@ -26,13 +26,20 @@ module fifo #(
 
     reg [ADDR_WIDTH:0] fifo_count = 0;
 
-    assign full  = (fifo_count == DEPTH);
-    assign empty = (fifo_count == 0);
-    assign size = fifo_count;
+    //assign full  = (fifo_count == DEPTH);
+    //assign empty = (fifo_count == 0);
+    //assign size = fifo_count;
     
     //debug
     assign wr_ptr_debug = wr_ptr;
     assign rd_ptr_debug = rd_ptr;
+    
+    // Signal logic
+    always @(posedge clk) begin
+        full  <= (fifo_count == DEPTH);
+        empty <= (fifo_count == 0);
+        size <= fifo_count;
+    end
 
     // Write logic
     always @(posedge clk) begin

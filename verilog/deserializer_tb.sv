@@ -2,26 +2,30 @@
 
 module deserializer_tb;
 
-    parameter IN_WIDTH  = 32;
-    parameter OUT_WIDTH = 8;
+    parameter IN_WIDTH  = 8;
+    parameter OUT_WIDTH = 32;
     parameter DEPTH     = 16;
-    parameter SEGMENTS  = IN_WIDTH / OUT_WIDTH;
+    parameter SEGMENTS  = OUT_WIDTH / IN_WIDTH;
     parameter ADDR_WIDTH = $clog2(DEPTH);
 
     reg clk, rst, start;
     wire busy, done;
+    
+    //debug
+    wire [1:0] state;
+    wire [$clog2(SEGMENTS):0] segment_cnt;
 
-    wire [IN_WIDTH-1:0] data_out;
-    reg [OUT_WIDTH-1:0] fifo_din = 0;
+    wire [OUT_WIDTH-1:0] data_out;
+    reg [IN_WIDTH-1:0] fifo_din = 0;
     reg wr_en = 0;
-    reg  [OUT_WIDTH-1:0] fifo_dout;
+    reg  [IN_WIDTH-1:0] fifo_dout;
     wire rd_en;
     wire [ADDR_WIDTH:0] size;
     wire full, empty;
 
     // FIFO con datos predefinidos
     fifo #(
-        .DATA_WIDTH(OUT_WIDTH),
+        .DATA_WIDTH(IN_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_inst (
         .clk(clk),
@@ -47,7 +51,9 @@ module deserializer_tb;
         .done(done),
         .fifo_dout(fifo_dout),
         .rd_en(rd_en),
-        .fifo_empty(empty)
+        .fifo_empty(empty),
+        .state_debug(state),
+        .segment_cnt_debug(segment_cnt)
     );
 
     always #5 clk = ~clk;
@@ -77,9 +83,13 @@ module deserializer_tb;
         $display("Size: %d", size);
         $display("FULL = %b (esperado: 1)", full);
 
-        #10 start = 1;
+        #5 start = 1;
+        
+        #10 start = 0;
 
         wait(done);
+        
+        #20
 
         $display("\n--- DESERIALIZER TEST COMPLETADO ---");
         $display("Resultado: %h", data_out);
