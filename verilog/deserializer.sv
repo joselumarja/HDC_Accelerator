@@ -18,7 +18,7 @@ module deserializer #(
 
     typedef enum logic [1:0] {
         IDLE,
-        LOAD,
+        READY,
         PROCESS,
         COMPLETE
     } state_t;
@@ -47,21 +47,28 @@ module deserializer #(
 
         case (state)
             IDLE: 
-                if (start) next_state = LOAD;
-            LOAD: begin
+                if (start) next_state = READY;
+            READY: begin
                 next_state = PROCESS;
                 rd_en = 1;
+                
+                if (fifo_empty)
+                    rd_en = 0;
+                    next_state = READY;
             end
             PROCESS: begin
                 if (!fifo_empty) begin
-                    rd_en = 1;
                     if (segment_cnt == SEGMENTS - 1) begin
                         rd_en = 0;
                         next_state = COMPLETE;
-                    end
-                end
+                    end else
+                        rd_en = 1;
+                end else
+                    next_state = READY;
+                
             end
             COMPLETE: begin
+                busy = 0;
                 done = 1;
                 next_state = IDLE;
             end
@@ -74,7 +81,7 @@ module deserializer #(
             data    <= 0;
         end else begin
             case (state)
-                LOAD: begin
+                IDLE: begin
                     segment_cnt <= 0;
                     data    <= 0;
                 end

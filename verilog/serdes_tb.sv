@@ -104,6 +104,9 @@ module serdes_tb;
         deserializer_start = 0;
         
         wait(deserializer_done);
+        
+        #15
+        
         $stop;
     end
 

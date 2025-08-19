@@ -14,9 +14,10 @@ module serializer #(
     input  wire                 fifo_full
 );
 
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         IDLE,
         LOAD,
+        READY,
         PROCESS,
         COMPLETE
     } state_t;
@@ -40,16 +41,24 @@ module serializer #(
 
         case (state)
             IDLE: if (start) next_state = LOAD;
-            LOAD: next_state = PROCESS;
+            LOAD: next_state = READY;
+            READY: begin
+                next_state = PROCESS;
+                
+                if(fifo_full)
+                    next_state = READY;
+            end
             PROCESS: begin
                 if (!fifo_full) begin
                     wr_en    = 1;
                     fifo_din = shift_reg[OUT_WIDTH-1:0];
                     if (segment_cnt == SEGMENTS - 1)
                         next_state = COMPLETE;
-                end
+                end else
+                    next_state = READY;
             end
             COMPLETE: begin
+                busy = 0;
                 done = 1;
                 next_state = IDLE;
             end

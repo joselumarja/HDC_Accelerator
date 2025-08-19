@@ -20,8 +20,8 @@ module fifo_tb;
     wire full;
     wire empty;
     
-    wire [ADDR_WIDTH:0] wr_ptr;
-    wire [ADDR_WIDTH:0] rd_ptr;
+    wire [ADDR_WIDTH-1:0] wr_ptr;
+    wire [ADDR_WIDTH-1:0] rd_ptr;
 
     // Instancia de la FIFO
     fifo #(
