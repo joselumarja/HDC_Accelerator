@@ -84,9 +84,14 @@ module serdes_tb;
         #10 deserializer_start = 0;
 
         wait(deserializer_done);
+        
+        #20
 
         $display("\n--- DESERIALIZER TEST COMPLETADO ---");
         
+        $display("\n--- SERDES SIMULTANEO ---");
+        
+        data_in = 32'hA5B6C7D8;
         rst = 1;
         
         #10
@@ -104,6 +109,8 @@ module serdes_tb;
         deserializer_start = 0;
         
         wait(deserializer_done);
+        
+        $display("\n--- SERDES SIMULTANEO COMPLETADO ---");
         
         #15
         

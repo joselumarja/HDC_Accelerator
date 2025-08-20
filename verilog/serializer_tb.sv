@@ -4,7 +4,7 @@ module serializer_tb;
 
     parameter IN_WIDTH  = 32;
     parameter OUT_WIDTH = 8;
-    parameter DEPTH     = 16;
+    parameter DEPTH     = 8;
     parameter SEGMENTS  = IN_WIDTH / OUT_WIDTH;
     parameter ADDR_WIDTH = $clog2(DEPTH);
 
@@ -20,6 +20,9 @@ module serializer_tb;
     // FIFO dummy
     wire [OUT_WIDTH-1:0] fifo_dout = 0;
     reg rd_en = 0;
+    
+    //debug
+    wire [2:0] state;
 
     fifo #(
         .DATA_WIDTH(OUT_WIDTH),
@@ -48,7 +51,8 @@ module serializer_tb;
         .done(done),
         .fifo_din(fifo_din),
         .wr_en(wr_en),
-        .fifo_full(full)
+        .fifo_full(full),
+        .state_debug(state)
     );
 
     always #5 clk = ~clk;
@@ -61,16 +65,14 @@ module serializer_tb;
         rst = 1;
         start = 0;
         data_in = 32'hA1B2C3D4;
+        
+        $display("\n--- SERIALIZANDO DATOS ---");
 
         #10 rst = 0;
         #10 start = 1;
         #10 start = 0;
 
         wait(done);
-
-        $display("\n--- SERIALIZER TEST COMPLETADO ---\n");
-        
-        #20
         
         $display("\n--- LEYENDO DATOS ---");
         // Leer hasta que esté vacía
@@ -90,9 +92,43 @@ module serializer_tb;
         $display("EMPTY = %b (esperado: 1)", empty);
 
         $display("\n--- TEST COMPLETADO ---");
-        $stop;
+        
+        $display("\n--- TEST SATURACIÓN FIFO ---");
+        
+        #10 start = 1;
+        #10 start = 0;
+        
+        wait(done)
+        
+        #10
+        
+        #10 start = 1;
+        #10 start = 0;
+        
+        wait(done)
+        
+        #10 start = 1;
+        #10 start = 0;
+        
+        #30
+        
+        rd_en = 1;
+        
+        while(!empty) begin
+            @(posedge clk);
+            #2
+            $display("Read: %d", fifo_dout);
+            $display("Size: %d", size);
+            
+        end
+
+        $display("\n--- SERIALIZER TEST COMPLETADO ---\n");
+        
+        #20
         
         $stop;
+        
+       
     end
 
 endmodule

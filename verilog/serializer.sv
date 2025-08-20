@@ -11,7 +11,8 @@ module serializer #(
     output reg                  done,
     output reg  [OUT_WIDTH-1:0] fifo_din,
     output reg                  wr_en,
-    input  wire                 fifo_full
+    input  wire                 fifo_full,
+    output wire [2:0] state_debug //debug
 );
 
     typedef enum logic [2:0] {
@@ -26,6 +27,9 @@ module serializer #(
     
     reg [$clog2(SEGMENTS):0] segment_cnt = 0;
     reg [IN_WIDTH-1:0] shift_reg;
+    
+    //debug
+    assign state_debug = state;
 
     always @(posedge clk) begin
         if (rst) state <= IDLE;
@@ -61,6 +65,8 @@ module serializer #(
                 busy = 0;
                 done = 1;
                 next_state = IDLE;
+                
+                if (start) next_state = LOAD;
             end
         endcase
     end

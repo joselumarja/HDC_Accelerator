@@ -12,7 +12,7 @@ module deserializer_tb;
     wire busy, done;
     
     //debug
-    wire [1:0] state;
+    wire [2:0] state;
     wire [$clog2(SEGMENTS):0] segment_cnt;
 
     wire [OUT_WIDTH-1:0] data_out;
@@ -83,6 +83,24 @@ module deserializer_tb;
         $display("Size: %d", size);
         $display("FULL = %b (esperado: 1)", full);
 
+        #5 start = 1;
+        
+        #10 start = 0;
+
+        wait(done);
+        
+        #5 start = 1;
+        
+        #10 start = 0;
+
+        wait(done);
+        
+        #5 start = 1;
+        
+        #10 start = 0;
+
+        wait(done);
+        
         #5 start = 1;
         
         #10 start = 0;

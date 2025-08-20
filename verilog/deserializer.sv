@@ -12,12 +12,13 @@ module deserializer #(
     input  wire [IN_WIDTH-1:0] fifo_dout,
     output reg                  rd_en,
     input  wire                 fifo_empty,
-    output wire [1:0] state_debug,
+    output wire [2:0] state_debug,
     output wire [$clog2(SEGMENTS):0] segment_cnt_debug
 );
 
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         IDLE,
+        LOAD,
         READY,
         PROCESS,
         COMPLETE
@@ -27,13 +28,15 @@ module deserializer #(
     
     reg [$clog2(SEGMENTS):0] segment_cnt = 0;
     reg [OUT_WIDTH-1:0] data = 0;
-
-    assign data_out = data;
     
     //debug
     assign state_debug = state;
     assign segment_cnt_debug = segment_cnt;
+    
+    //output logic
+    assign data_out = data;
 
+    
     always @(posedge clk) begin
         if (rst) state <= IDLE;
         else     state <= next_state;
@@ -48,21 +51,21 @@ module deserializer #(
         case (state)
             IDLE: 
                 if (start) next_state = READY;
+            LOAD:
+                next_state = READY;
             READY: begin
-                next_state = PROCESS;
-                rd_en = 1;
-                
                 if (fifo_empty)
-                    rd_en = 0;
                     next_state = READY;
+                else
+                    next_state = PROCESS;
             end
             PROCESS: begin
                 if (!fifo_empty) begin
-                    if (segment_cnt == SEGMENTS - 1) begin
-                        rd_en = 0;
+                    rd_en = 1;
+                    
+                    if (segment_cnt == SEGMENTS - 1)
                         next_state = COMPLETE;
-                    end else
-                        rd_en = 1;
+
                 end else
                     next_state = READY;
                 
@@ -70,7 +73,11 @@ module deserializer #(
             COMPLETE: begin
                 busy = 0;
                 done = 1;
-                next_state = IDLE;
+                
+                if(start)
+                    next_state = LOAD;
+                else
+                    next_state = IDLE;
             end
         endcase
     end
@@ -81,12 +88,12 @@ module deserializer #(
             data    <= 0;
         end else begin
             case (state)
-                IDLE: begin
+                LOAD: begin
                     segment_cnt <= 0;
                     data    <= 0;
                 end
                 PROCESS: if (!fifo_empty) begin
-                    //data <= data | ({{(OUT_WIDTH-IN_WIDTH){1'b0}}, fifo_dout} << (IN_WIDTH * segment_cnt));
+                    //data <= (data << IN_WIDTH) | fifo_dout;
                     data <= data | (fifo_dout << (IN_WIDTH * segment_cnt));
                     segment_cnt <= segment_cnt + 1;
                 end
