@@ -138,13 +138,12 @@ module hdc_accelerator_component_tb;
 
         #20;
         ap_rst = 0;
-        
-        fifo_A_wr_en = 1;
-        fifo_B_wr_en = 1;
 
-        // Precargar las FIFOs A y B con datos de prueba (se haría accediendo a memoria interna)
+        // Precargar las FIFOs A y B con datos de prueba
         for (i = 0; i < vector_size; i = i + 1) begin
             @(posedge ap_clk);
+            fifo_A_wr_en = 1;
+            fifo_B_wr_en = 1;
             fifo_A_din = 8'hFF;
             if(i%2 == 0)
                 fifo_B_din = 8'h00;
@@ -172,8 +171,61 @@ module hdc_accelerator_component_tb;
             @(posedge ap_clk);
             $display("Read: %d", fifo_C_dout);
         end
+        
+        fifo_C_rd_en = 0;
 
         $display("---- TEST FINALIZADO ----");
+        
+        #20;
+        
+        $display("---- TEST PRECARGA INCOMPLETA ----");
+        
+        @(posedge ap_clk);
+        ap_rst = 1;
+        
+        @(posedge ap_clk)
+        ap_rst = 0;
+        
+        for (i = 0; i < vector_size/2; i = i + 1) begin
+            @(posedge ap_clk);
+            fifo_A_wr_en = 1;
+            fifo_B_wr_en = 1;
+            fifo_A_din = 8'hFF;
+            if(i%2 == 0)
+                fifo_B_din = 8'h00;
+            else
+                fifo_B_din = 8'hFF;
+        end
+        
+        @(posedge ap_clk);
+        ap_start = 1;
+        fifo_A_wr_en = 0;
+        fifo_B_wr_en = 0;
+        
+        @(posedge ap_clk);
+        ap_start = 0;
+        
+        #150
+        
+        for (i = 0; i < vector_size/2; i = i + 1) begin
+            @(posedge ap_clk);
+            fifo_A_wr_en <= 1;
+            fifo_B_wr_en <= 1;
+            fifo_A_din = 8'hFF;
+            if(i%2 == 0)
+                fifo_B_din = 8'h00;
+            else
+                fifo_B_din = 8'hFF;
+        end
+        
+        @(posedge ap_clk)
+        fifo_A_wr_en <= 0;
+        fifo_B_wr_en <= 0;
+        
+        wait (ap_done);
+        
+        #20
+        
         $stop;
     end
 

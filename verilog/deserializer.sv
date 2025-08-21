@@ -50,7 +50,7 @@ module deserializer #(
 
         case (state)
             IDLE: 
-                if (start) next_state = READY;
+                if (start) next_state = LOAD;
             LOAD:
                 next_state = READY;
             READY: begin
@@ -73,11 +73,7 @@ module deserializer #(
             COMPLETE: begin
                 busy = 0;
                 done = 1;
-                
-                if(start)
-                    next_state = LOAD;
-                else
-                    next_state = IDLE;
+                next_state = IDLE;
             end
         endcase
     end
