@@ -115,7 +115,8 @@ module obi_master_if_tb;
 
     // Simular el rvalid con datos
     wait(mst_obi_req_o);
-    #10 mst_obi_rvalid_i = 1;
+    @(posedge clk);
+    mst_obi_rvalid_i = 1;
     mst_obi_rdata_i = 32'hBEEF1234;
     @(posedge clk);
     mst_obi_rvalid_i = 0;
@@ -125,6 +126,7 @@ module obi_master_if_tb;
     $display("Lectura completada, datos recibidos = 0x%08X", rdata);
 
     $display("--- TEST COMPLETADO ---\n");
+    #20
     $stop;
   end
 
