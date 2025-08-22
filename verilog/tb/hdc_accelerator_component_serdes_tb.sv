@@ -14,7 +14,6 @@ module hdc_accelerator_component_serdes_tb;
     wire ap_done, ap_ready, ap_idle;
     reg [31:0] vector_size;
     reg [1:0] sel_op;
-    reg [WORD_WIDTH-1:0] data_in;
 
     // Señales FIFO A
     wire fifo_A_wr_en;
@@ -211,9 +210,8 @@ module hdc_accelerator_component_serdes_tb;
         serializer_B_start = 0;
         deserializer_C_start = 0;
 
-        data_in = 32'hA1B2C3D4;
-        data_A_in = data_in;
-        data_B_in = data_in;
+        data_A_in = 32'hA1B2C3D4;
+        data_B_in = 32'h00000000;
 
         @(posedge ap_clk)
         

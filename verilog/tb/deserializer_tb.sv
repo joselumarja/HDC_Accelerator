@@ -89,24 +89,24 @@ module deserializer_tb;
 
         wait(done);
         
-        #5 start = 1;
-        
-        #10 start = 0;
+        @(posedge clk)
+        start = 1;
+        @(posedge clk)
+        start = 0;
 
         wait(done);
-        
-        #5 start = 1;
-        
-        #10 start = 0;
-
+        @(posedge clk)
+        start = 1;
+        @(posedge clk)
+        start = 0;
+        @(posedge clk)
         wait(done);
-        
-        #5 start = 1;
-        
-        #10 start = 0;
-
+        @(posedge clk)
+        start = 1;
+        @(posedge clk)
+        start = 0;
+        @(posedge clk)
         wait(done);
-        
         #20
 
         $display("\n--- DESERIALIZER TEST COMPLETADO ---");

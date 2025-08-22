@@ -37,7 +37,7 @@ module deserializer #(
     assign data_out = data;
 
     
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) state <= IDLE;
         else     state <= next_state;
     end
@@ -52,7 +52,10 @@ module deserializer #(
             IDLE: 
                 if (start) next_state = LOAD;
             LOAD:
-                next_state = READY;
+                if (fifo_empty)
+                    next_state = READY;
+                else
+                    next_state = PROCESS;
             READY: begin
                 if (fifo_empty)
                     next_state = READY;
@@ -78,7 +81,7 @@ module deserializer #(
         endcase
     end
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             segment_cnt <= 0;
             data    <= 0;
@@ -86,7 +89,7 @@ module deserializer #(
             case (state)
                 LOAD: begin
                     segment_cnt <= 0;
-                    data    <= 0;
+                    data <= 0;
                 end
                 PROCESS: if (!fifo_empty) begin
                     //data <= (data << IN_WIDTH) | fifo_dout;

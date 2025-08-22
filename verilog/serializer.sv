@@ -31,7 +31,7 @@ module serializer #(
     //debug
     assign state_debug = state;
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) state <= IDLE;
         else     state <= next_state;
     end
@@ -45,12 +45,17 @@ module serializer #(
 
         case (state)
             IDLE: if (start) next_state = LOAD;
-            LOAD: next_state = READY;
-            READY: begin
-                next_state = PROCESS;
-                
+            LOAD: 
                 if(fifo_full)
                     next_state = READY;
+                else
+                    next_state = PROCESS;
+                    
+            READY: begin
+                if(fifo_full)
+                    next_state = READY;
+                else
+                    next_state = PROCESS;
             end
             PROCESS: begin
                 if (!fifo_full) begin
@@ -65,13 +70,11 @@ module serializer #(
                 busy = 0;
                 done = 1;
                 next_state = IDLE;
-                
-                if (start) next_state = LOAD;
             end
         endcase
     end
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             segment_cnt <= 0;
             shift_reg   <= 0;

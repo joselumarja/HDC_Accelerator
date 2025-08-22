@@ -40,7 +40,7 @@ module fifo #(
     assign dout = mem[rd_ptr];
 
     // Write logic
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (!rst && wr_en && !full) begin
             mem[wr_ptr] <= din;
         end
@@ -56,7 +56,7 @@ module fifo #(
     end*/
     
     // Pointer logic
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             wr_ptr <= 0;
             rd_ptr <= 0;
@@ -81,7 +81,7 @@ module fifo #(
     
     
     // Counter logic
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             fifo_count <= 0;
         end else begin
