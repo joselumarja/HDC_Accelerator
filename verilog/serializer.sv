@@ -67,7 +67,6 @@ module serializer #(
                     next_state = READY;
             end
             COMPLETE: begin
-                busy = 0;
                 done = 1;
                 next_state = IDLE;
             end

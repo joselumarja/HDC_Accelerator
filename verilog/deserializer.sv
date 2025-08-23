@@ -74,7 +74,6 @@ module deserializer #(
                 
             end
             COMPLETE: begin
-                busy = 0;
                 done = 1;
                 next_state = IDLE;
             end

@@ -304,7 +304,7 @@ module hdc_fsm_control_tb;
         
         wait(done)
         
-        #10
+        #20
         
         $stop;
     end

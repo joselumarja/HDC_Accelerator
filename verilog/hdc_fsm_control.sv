@@ -212,7 +212,7 @@ module hdc_fsm_control #(
                 endcase
             end
             WAIT_DES:
-                if(!deserializer_C_busy) next_state = RW_OBI;
+                if(deserializer_C_done) next_state = RW_OBI;
                 
             SER_DES:begin
                 
