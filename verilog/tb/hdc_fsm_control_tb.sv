@@ -32,7 +32,7 @@ module hdc_fsm_control_tb;
     wire fifo_A_rd_en;
     wire [FIFO_DATA_WIDTH-1:0] fifo_A_din;
     wire [FIFO_DATA_WIDTH-1:0] fifo_A_dout;
-    wire [ADDR_WIDTH:0] fifo_A_size;
+    wire [FIFO_ADDR_WIDTH:0] fifo_A_size;
     wire fifo_A_full;
     wire fifo_A_empty;
     
@@ -47,7 +47,7 @@ module hdc_fsm_control_tb;
     wire fifo_B_rd_en;
     wire [FIFO_DATA_WIDTH-1:0] fifo_B_din;
     wire [FIFO_DATA_WIDTH-1:0] fifo_B_dout;
-    wire [ADDR_WIDTH:0] fifo_B_size;
+    wire [FIFO_ADDR_WIDTH:0] fifo_B_size;
     wire fifo_B_full;
     wire fifo_B_empty;
     
@@ -62,7 +62,7 @@ module hdc_fsm_control_tb;
     wire fifo_C_rd_en;
     wire [FIFO_DATA_WIDTH-1:0] fifo_C_din;
     wire [FIFO_DATA_WIDTH-1:0] fifo_C_dout;
-    wire [ADDR_WIDTH:0] fifo_C_size;
+    wire [FIFO_ADDR_WIDTH:0] fifo_C_size;
     wire fifo_C_full;
     wire fifo_C_empty;
     
@@ -73,7 +73,7 @@ module hdc_fsm_control_tb;
     wire [DATA_WIDTH-1:0] data_C_out;
 
     //Señales del componente HLS
-    reg ap_start;
+    //reg ap_start;
     wire ap_done, ap_ready, ap_idle;
     reg [31:0] component_iterations;
     reg [1:0] sel_op;
@@ -87,6 +87,7 @@ module hdc_fsm_control_tb;
     //debug
     wire [3:0] state_debug;
     wire [2:0] fifo_debug;
+    wire [2:0] vector_finish_debug;
     
     // Generación de reloj
     always #5 clk = ~clk;
@@ -122,22 +123,23 @@ module hdc_fsm_control_tb;
         .fifo_C_size(fifo_C_size),
     
         .serializer_A_start(serializer_A_start),
-        .serializer_A_data_in(serializer_A_data_in),
+        .serializer_A_data_in(data_A_in),
         .serializer_A_busy(serializer_A_busy),
         .serializer_A_done(serializer_A_done),
     
         .serializer_B_start(serializer_B_start),
-        .serializer_B_data_in(serializer_B_data_in),
+        .serializer_B_data_in(data_B_in),
         .serializer_B_busy(serializer_B_busy),
         .serializer_B_done(serializer_B_done),
     
         .deserializer_C_start(deserializer_C_start),
-        .deserializer_C_data_out(deserializer_C_data_out),
+        .deserializer_C_data_out(data_C_out),
         .deserializer_C_busy(deserializer_C_busy),
         .deserializer_C_done(deserializer_C_done),
     
         .state_debug(state_debug),
-        .fifo_debug(fifo_debug)
+        .fifo_debug(fifo_debug),
+        .vector_finish_debug(vector_finish_debug)
     );
 
 
@@ -281,8 +283,13 @@ module hdc_fsm_control_tb;
         clk = 0;
         rst = 1;
         start = 0;
-        vector_size = 16;
+        vector_size = 64;
+        vector_B_size = vector_size;
         sel_op = 2'b00; // Cambia según la operación deseada
+        
+        addr_A = 32'h0000_0000;
+        addr_B = 32'h0000_0100;
+        addr_C = 32'h0000_0200;
         
         component_iterations = vector_size / FIFO_DATA_WIDTH;
 

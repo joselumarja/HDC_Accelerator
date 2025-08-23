@@ -52,7 +52,8 @@ module hdc_fsm_control #(
     
     //debug
     output reg [3:0] state_debug,
-    output reg [2:0] fifo_debug
+    output reg [2:0] fifo_debug,
+    output reg [2:0] vector_finish_debug
     
     
 
@@ -80,10 +81,10 @@ module hdc_fsm_control #(
     fifo_id_t fifo, next_fifo;
     
     //Vectors memory signals
-    logic [ADDR_WIDTH-1:0] counter [1:0];
-    logic [ADDR_WIDTH-1:0] addr [1:0];
-    logic [ADDR_WIDTH-1:0] size [1:0];
-    logic vector_finish [1:0];
+    logic [ADDR_WIDTH-1:0] counter [2:0];
+    logic [ADDR_WIDTH-1:0] addr [2:0];
+    logic [ADDR_WIDTH-1:0] size [2:0];
+    logic vector_finish [2:0];
     
     //Señal de acceso a memoria principal
     logic data_movement;
@@ -92,13 +93,16 @@ module hdc_fsm_control #(
     assign rw = (fifo == C);
     
     //Control de las señales de finalizacion
-    assign vector_finish[A] = counter[A] >= vector_size;
-    assign vector_finish[B] = counter[B] >= vector_B_size;
-    assign vector_finish[C] = counter[C] >= vector_size;
+    assign vector_finish[A] = counter[A] >= size[A];
+    assign vector_finish[B] = counter[B] >= size[B];
+    assign vector_finish[C] = counter[C] >= size[C];
     
     //debug
     assign state_debug = state;
     assign fifo_debug = fifo;
+    assign vector_finish_debug[A] = vector_finish[A];
+    assign vector_finish_debug[B] = vector_finish[B];
+    assign vector_finish_debug[C] = vector_finish[C];
    
     
     always @(*) begin
@@ -144,7 +148,7 @@ module hdc_fsm_control #(
                     else
                         next_state = RW_OBI;
                         
-                end else
+                end else begin
                     //No hay movimiento de datos, se calcula la siguiente fifo a checkear
                     case(fifo)
                         A:
@@ -154,11 +158,12 @@ module hdc_fsm_control #(
                             if(vector_finish[C]) next_fifo = A;
                             else next_fifo = C;
                         C:  
-                            if(vector_finish[A]) 
+                            if(vector_finish[A]) begin
                                 if (vector_finish[B]) next_fifo = C;
                                 else next_fifo = B;
-                            else next_fifo = A;
+                            end else next_fifo = A;
                     endcase
+                 end
                  
                  //En caso de que todas las fifos hayan terminado el siguiente estado es finalizar
                  if(vector_finish[A] && vector_finish[B] && vector_finish[C])
@@ -167,10 +172,10 @@ module hdc_fsm_control #(
             
             RW_OBI: begin
                 next_state = WAIT_OBI;
-                obi_transference_start = 0;
+                obi_transference_start = 1;
             end
                 
-            WAIT_OBI:
+            WAIT_OBI: begin
                 if(obi_transference_done)
                     if(fifo == C) begin
                         next_state = CHECK_FIFO;
@@ -194,8 +199,8 @@ module hdc_fsm_control #(
                                 if(!deserializer_C_busy) next_state = SER_DES;
                         endcase
                     end
-                    
-            REQUEST_SER_DES:
+            end   
+            REQUEST_SER_DES: begin
                 //Se mantiene en el estado hasta que el recurso esta libre
                 case(fifo)
                     A:
@@ -205,7 +210,7 @@ module hdc_fsm_control #(
                     C:
                         if(!deserializer_C_busy) next_state = SER_DES;
                 endcase
-                
+            end
             WAIT_DES:
                 if(!deserializer_C_busy) next_state = RW_OBI;
                 
