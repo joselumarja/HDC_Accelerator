@@ -1,75 +1,129 @@
 module obi_slave_if #(
-    parameter ADDR_WIDTH,
-    parameter DATA_WIDTH
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32
 )(
-    input  logic                  clk,
-    input  logic                  rst,
+    input  wire                  clk,
+    input  wire                  rst,
 
-    // OBI slave interface
-    input  logic                  slv_obi_req_i,
-    input  logic [ADDR_WIDTH-1:0] slv_obi_addr_i,
-    input  logic                  slv_obi_we_i,
-    input  logic [DATA_WIDTH/8-1:0] slv_obi_be_i,
-    input  logic [DATA_WIDTH-1:0] slv_obi_wdata_i,
-    output logic                  slv_obi_gnt_o,
-    output logic [DATA_WIDTH-1:0] slv_obi_rdata_o,
-    output logic                  slv_obi_rvalid_o,
+    // Señales OBI esclavo
+    input  wire                  obi_req,
+    input  wire                  obi_we,
+    input  wire [ADDR_WIDTH-1:0] obi_addr,
+    input  wire [DATA_WIDTH-1:0] obi_wdata,
+    output reg  [DATA_WIDTH-1:0] obi_rdata,
+    output reg                  obi_gnt,
+    output reg                  obi_rvalid,
 
-    // Registro de configuración (salida)
-    output logic [ADDR_WIDTH-1:0] addr_A,
-    output logic [ADDR_WIDTH-1:0] addr_B,
-    output logic [ADDR_WIDTH-1:0] addr_C,
-    output logic [ADDR_WIDTH-1:0] vector_size,
-    output logic        start,
+    // Señales de salida a otros componentes
+    output wire                   start_out,
+    input  wire                  done_in,
 
-    // Flags de control (entrada)
-    input  logic        busy,
-    input  logic        done
+    // Registros configurados
+    output reg [ADDR_WIDTH-1:0] addr_A,
+    output reg [ADDR_WIDTH-1:0] addr_B,
+    output reg [ADDR_WIDTH-1:0] addr_C,
+    output reg [ADDR_WIDTH-1:0] vector_size,
+    output reg [ADDR_WIDTH-1:0] vector_B_size,
+    output reg [1:0]            sel_op,
+    
+    output wire [1:0] state_debug
 );
 
-    logic start_reg;
+    // Direcciones de los registros (puedes ajustarlas)
+    localparam ADDR_ADDR_A       = 32'h00;
+    localparam ADDR_ADDR_B       = 32'h04;
+    localparam ADDR_ADDR_C       = 32'h08;
+    localparam ADDR_VECTOR_SIZE  = 32'h0C;
+    localparam ADDR_VECTOR_B_SIZE= 32'h10;
+    localparam ADDR_SEL_OP       = 32'h14;
+    localparam ADDR_START        = 32'h18;
+    localparam ADDR_DONE         = 32'h1C;
+
+    // Señales internas
+    typedef enum logic [1:0] {
+        IDLE,
+        START_PULSE,
+        RUNNING,
+        DONE
+    } state_t;
+
+    state_t state = IDLE, next_state = IDLE;
+    
+    reg start, done;
+    
+    //debug
+    assign state_debug = state;
+    
+    assign done = (state == DONE);
+    assign start_out = (state == START_PULSE);
+    
+    //Actualizacion de estado
+    always @(posedge clk) begin
+        if (rst) state <= IDLE;
+        else state <= next_state;
+    end
+    
+    // FSM de control
+    always @(*) begin
+        next_state = state;
+
+        case (state)
+            IDLE:
+                if(start)
+                    next_state = START_PULSE;
+            START_PULSE:
+                next_state = RUNNING;
+
+            RUNNING: begin
+                if(done_in)
+                    next_state = DONE;
+            end
+        endcase
+    end
 
     // Escritura de registros
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst) begin
-            addr_A      <= ADDR_WIDTH'd0;
-            addr_B      <= ADDR_WIDTH'd0;
-            addr_C      <= ADDR_WIDTH'd0;
-            vector_size <= ADDR_WIDTH'd0;
-            start_reg   <= 1'b0;
-        end else if (slv_obi_req_i && slv_obi_we_i) begin
-            unique case (slv_obi_addr_i[5:2])
-                4'h0: addr_A      <= slv_obi_wdata_i;
-                4'h1: addr_B      <= slv_obi_wdata_i;
-                4'h2: addr_C      <= slv_obi_wdata_i;
-                4'h3: vector_size <= slv_obi_wdata_i;
-                4'h4: start_reg   <= slv_obi_wdata_i[0];
+            addr_A        <= 0;
+            addr_B        <= 0;
+            addr_C        <= 0;
+            vector_size   <= 0;
+            vector_B_size <= 0;
+            sel_op        <= 0;
+            start         <= 0;
+        end else if (obi_req && obi_we) begin
+            case (obi_addr)
+                ADDR_ADDR_A:        addr_A        <= obi_wdata;
+                ADDR_ADDR_B:        addr_B        <= obi_wdata;
+                ADDR_ADDR_C:        addr_C        <= obi_wdata;
+                ADDR_VECTOR_SIZE:   vector_size   <= obi_wdata;
+                ADDR_VECTOR_B_SIZE: vector_B_size <= obi_wdata;
+                ADDR_SEL_OP:        sel_op        <= obi_wdata[1:0];
+                ADDR_START:         start         <= obi_wdata[0:0];
             endcase
-        end else if (done) begin
-            start_reg <= 1'b0;
         end
     end
-
-    assign start = start_reg;
 
     // Lectura de registros
-    always_ff @(posedge clk) begin
-        if (slv_obi_req_i && !slv_obi_we_i) begin
-            unique case (slv_obi_addr_i[5:2])
-                4'h0: slv_obi_rdata_o <= addr_A;
-                4'h1: slv_obi_rdata_o <= addr_B;
-                4'h2: slv_obi_rdata_o <= addr_C;
-                4'h3: slv_obi_rdata_o <= {DATA_WIDTH'd0, vector_size};
-                4'h4: slv_obi_rdata_o <= {DATA_WIDTH'd0, start_reg};
-                4'h5: slv_obi_rdata_o <= {DATA_WIDTH'd0, busy};
-                4'h6: slv_obi_rdata_o <= {DATA_WIDTH'd0, done};
-                default: slv_obi_rdata_o <= DATA_WIDTH'hFFFFFFFF;
-            endcase
-        end
+    always @(*) begin
+        case (obi_addr)
+            ADDR_ADDR_A:        obi_rdata = addr_A;
+            ADDR_ADDR_B:        obi_rdata = addr_B;
+            ADDR_ADDR_C:        obi_rdata = addr_C;
+            ADDR_VECTOR_SIZE:   obi_rdata = vector_size;
+            ADDR_VECTOR_B_SIZE: obi_rdata = vector_B_size;
+            ADDR_SEL_OP:        obi_rdata = {30'b0, sel_op};
+            ADDR_START:         obi_rdata = 32'd0;  // No lectura útil
+            ADDR_DONE:          obi_rdata = {31'b0, done};
+            default:            obi_rdata = 32'hDEADBEEF;
+        endcase
+    end
+    
+    // OBI handshake (simplificado: siempre listo)
+    always @(posedge clk) begin
+        obi_gnt <= obi_req;
+        obi_rvalid = obi_req && !obi_we;
     end
 
-    // REVISAR ESTO
-    assign slv_obi_gnt_o    = slv_obi_req_i;
-    assign slv_obi_rvalid_o = slv_obi_req_i && !slv_obi_we_i;
-
 endmodule
+

@@ -49,10 +49,9 @@ module obi_master_if #(
 
     // Secuencia principal
     always_ff @(posedge clk) begin
-        if (rst) begin
-            state <= IDLE;
+        if (rst)
             rdata_reg <= '0;
-        end else begin
+        else begin
             case(state)
                 WAIT_RVALID: begin
                     if (mst_obi_rvalid_i)
