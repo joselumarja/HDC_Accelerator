@@ -77,7 +77,7 @@ module hdc_fsm_control #(
         C
     } fifo_id_t;
 
-    state_t state, next_state;
+    state_t state = IDLE, next_state = IDLE;
     fifo_id_t fifo, next_fifo;
     
     //Vectors memory signals
@@ -96,6 +96,10 @@ module hdc_fsm_control #(
     assign vector_finish[A] = counter[A] >= size[A];
     assign vector_finish[B] = counter[B] >= size[B];
     assign vector_finish[C] = counter[C] >= size[C];
+    
+    //Señales de estado
+    assign busy = !(state == IDLE);
+    assign done = (state == FINISHED);
     
     //debug
     assign state_debug = state;
@@ -117,9 +121,6 @@ module hdc_fsm_control #(
         
         obi_transference_start = 0;
         obi_transference_rw = rw;
-        
-        busy = !(state == IDLE);
-        done = 0;
         
         case(state)
             IDLE:
@@ -243,7 +244,6 @@ module hdc_fsm_control #(
             end
             FINISHED: begin
                 next_state = IDLE;
-                done = 1;
             end
         endcase
     end

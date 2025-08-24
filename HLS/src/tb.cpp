@@ -2,6 +2,8 @@
 
 #include "hdc_accelerator_component.hpp"
 
+#define VECTOR_SIZE 1024
+
 int main(){
 
 	unsigned int vector_size = VECTOR_SIZE/DATA_SIZE;
