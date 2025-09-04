@@ -15,7 +15,7 @@ module hdc_fsm_control_tb;
     // Señales FSM
     reg start;
     reg [ADDR_WIDTH-1:0] addr_A, addr_B, addr_C;
-    reg [ADDR_WIDTH-1:0] vector_size, vector_B_size;
+    reg [ADDR_WIDTH-1:0] vector_A_size, vector_B_size, vector_C_size;
     wire busy, done;
     
     // Señales Master OBI simulado
@@ -90,7 +90,7 @@ module hdc_fsm_control_tb;
     wire [2:0] vector_finish_debug;
     
     // Generación de reloj
-    always #5 clk = ~clk;
+    always #0.5 clk = ~clk;
     
     //FSM
     hdc_fsm_control #(
@@ -105,8 +105,9 @@ module hdc_fsm_control_tb;
         .addr_A(addr_A),
         .addr_B(addr_B),
         .addr_C(addr_C),
-        .vector_size(vector_size),
+        .vector_A_size(vector_A_size),
         .vector_B_size(vector_B_size),
+        .vector_C_size(vector_C_size),
         .busy(busy),
         .done(done),
     
@@ -275,7 +276,7 @@ module hdc_fsm_control_tb;
     );
     
     // Variables auxiliares
-    integer i;
+    integer i, size;
 
     // Inicialización y prueba
     initial begin
@@ -283,17 +284,21 @@ module hdc_fsm_control_tb;
         clk = 0;
         rst = 1;
         start = 0;
-        vector_size = 64;
-        vector_B_size = vector_size;
-        sel_op = 2'b00; // Cambia según la operación deseada
+        
+        size = 8192;
+        
+        vector_A_size = size;
+        vector_B_size = size;
+        vector_C_size = 32;
+        sel_op = 2'b11; // Cambia según la operación deseada
         
         addr_A = 32'h0000_0000;
         addr_B = 32'h0000_0100;
         addr_C = 32'h0000_0200;
         
-        component_iterations = vector_size / FIFO_DATA_WIDTH;
+        component_iterations = vector_A_size / FIFO_DATA_WIDTH;
 
-        #20;
+        #2;
         rst = 0;
         
         start = 1;
@@ -304,7 +309,7 @@ module hdc_fsm_control_tb;
         
         wait(done)
         
-        #20
+        #2
         
         $stop;
     end

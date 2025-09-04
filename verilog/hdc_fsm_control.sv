@@ -13,16 +13,17 @@ module hdc_fsm_control #(
     input  logic [ADDR_WIDTH-1:0]  addr_A,
     input  logic [ADDR_WIDTH-1:0]  addr_B,
     input  logic [ADDR_WIDTH-1:0]  addr_C,
-    input  logic [ADDR_WIDTH-1:0]  vector_size,
+    input  logic [ADDR_WIDTH-1:0]  vector_A_size,
     input  logic [ADDR_WIDTH-1:0]  vector_B_size,
+    input  logic [ADDR_WIDTH-1:0]  vector_C_size,
     output logic                   busy,
     output logic                   done,
     
     //OBI Master Signals
-    output  logic                  obi_transference_start,         // Señal para iniciar una transacción
-    output  logic                  obi_transference_rw,            // 0 = read, 1 = write
-    output  logic [ADDR_WIDTH-1:0] obi_transference_addr,
-    output  logic [DATA_WIDTH-1:0] obi_transference_wdata,
+    output  reg                  obi_transference_start,         // Señal para iniciar una transacción
+    output  reg                  obi_transference_rw,            // 0 = read, 1 = write
+    output  reg [ADDR_WIDTH-1:0] obi_transference_addr,
+    output  reg [DATA_WIDTH-1:0] obi_transference_wdata,
     input logic [DATA_WIDTH-1:0] obi_transference_rdata,
     input logic                  obi_transference_done,          // Operación finalizada
     input logic                  obi_transference_busy,          // Operación en curso
@@ -115,11 +116,6 @@ module hdc_fsm_control #(
         next_fifo = fifo;
         data_movement = 0;
         
-        serializer_A_start = 0;
-        serializer_B_start = 0;
-        deserializer_C_start = 0;
-        
-        obi_transference_start = 0;
         obi_transference_rw = rw;
         
         case(state)
@@ -173,7 +169,6 @@ module hdc_fsm_control #(
             
             RW_OBI: begin
                 next_state = WAIT_OBI;
-                obi_transference_start = 1;
             end
                 
             WAIT_OBI: begin
@@ -216,16 +211,6 @@ module hdc_fsm_control #(
                 if(deserializer_C_done) next_state = RW_OBI;
                 
             SER_DES:begin
-                
-                //Señal de start a los recursos
-                case(fifo)
-                    A:
-                        serializer_A_start = 1;
-                    B:
-                        serializer_B_start = 1;
-                    C:
-                        deserializer_C_start = 1;
-                endcase
                 
                 if(fifo==C) next_state = WAIT_DES;
                 else begin
@@ -279,9 +264,9 @@ module hdc_fsm_control #(
                     addr[A] <= addr_A;
                     addr[B] <= addr_B;
                     addr[C] <= addr_C;
-                    size[A] <= vector_size;
+                    size[A] <= vector_A_size;
                     size[B] <= vector_B_size;
-                    size[C] <= vector_size;
+                    size[C] <= vector_C_size;
                 end
                 
                 RW_OBI: begin
@@ -303,15 +288,33 @@ module hdc_fsm_control #(
                            counter[C] <= counter[C] + DATA_WIDTH;
                         end     
                     endcase
+                    
+                    obi_transference_start <= 1;
                 end         
                 
                 SER_DES: begin
                     case (fifo)
-                        A:
+                        A: begin
                             serializer_A_data_in <= obi_transference_rdata;
-                        B:
+                            serializer_A_start <= 1;
+                        end
+                        B: begin
                             serializer_B_data_in <= obi_transference_rdata;
+                            serializer_B_start <= 1;
+                        end
+                        C: begin
+                            deserializer_C_start <= 1;
+                        end
+                        
                     endcase
+                end
+                
+                default: begin
+                    serializer_A_start <= 0;
+                    serializer_B_start <= 0;
+                    deserializer_C_start <= 0;
+        
+                    obi_transference_start <= 0;
                 end
                     
             endcase

@@ -20,7 +20,7 @@ module obi_slave_if_tb;
     logic start_out;
     logic done_in;
 
-    logic [ADDR_WIDTH-1:0] addr_A, addr_B, addr_C, vector_size, vector_B_size;
+    logic [ADDR_WIDTH-1:0] addr_A, addr_B, addr_C, vector_A_size, vector_B_size, vector_C_size;
     logic [1:0] sel_op;
     
     reg [1:0] state_debug;
@@ -47,8 +47,9 @@ module obi_slave_if_tb;
         .addr_A(addr_A),
         .addr_B(addr_B),
         .addr_C(addr_C),
-        .vector_size(vector_size),
+        .vector_A_size(vector_A_size),
         .vector_B_size(vector_B_size),
+        .vector_C_size(vector_C_size),
         .sel_op(sel_op),
         .state_debug(state_debug)
     );
@@ -99,12 +100,13 @@ module obi_slave_if_tb;
         obi_write(32'h00, 32'hA0000000); // addr_A
         obi_write(32'h04, 32'hB0000000); // addr_B
         obi_write(32'h08, 32'hC0000000); // addr_C
-        obi_write(32'h0C, 32'd64);       // vector_size
-        obi_write(32'h10, 32'd32);       // vector_B_size
-        obi_write(32'h14, 32'd0);        // sel_op
+        obi_write(32'h0C, 32'd64);       // vector_A_size
+        obi_write(32'h10, 32'd64);       // vector_B_size
+        obi_write(32'h14, 32'd64);       // vector_C_size
+        obi_write(32'h18, 32'd0);        // sel_op
 
         // Escribir en start
-        obi_write(32'h18, 32'd1);        // start = 1
+        obi_write(32'h1C, 32'd1);        // start = 1
 
         // Esperar un ciclo y observar start_out
         @(posedge clk);
@@ -125,8 +127,9 @@ module obi_slave_if_tb;
         $display("addr_A        = %h", addr_A);
         $display("addr_B        = %h", addr_B);
         $display("addr_C        = %h", addr_C);
-        $display("vector_size   = %d", vector_size);
+        $display("vector_A_size   = %d", vector_A_size);
         $display("vector_B_size = %d", vector_B_size);
+        $display("vector_C_size = %d", vector_C_size);
         $display("sel_op        = %d", sel_op);
 
         $finish;

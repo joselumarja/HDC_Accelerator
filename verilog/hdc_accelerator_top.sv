@@ -29,7 +29,11 @@ module hdc_accelerator_top #(
     output logic [DATA_WIDTH/8-1:0] mst_obi_be_o,
     input  logic                  mst_obi_gnt_i,
     input  logic [DATA_WIDTH-1:0] mst_obi_rdata_i,
-    input  logic                  mst_obi_rvalid_i
+    input  logic                  mst_obi_rvalid_i,
+    
+    //debug
+    output logic                  done_debug,
+    output reg [3:0]                  state_debug
 );
 
     // Señales Slave OBI
@@ -37,8 +41,9 @@ module hdc_accelerator_top #(
     wire [ADDR_WIDTH-1:0] addr_A;
     wire [ADDR_WIDTH-1:0] addr_B;
     wire [ADDR_WIDTH-1:0] addr_C;
-    wire [ADDR_WIDTH-1:0] vector_size;
+    wire [ADDR_WIDTH-1:0] vector_A_size;
     wire [ADDR_WIDTH-1:0] vector_B_size;
+    wire [ADDR_WIDTH-1:0] vector_C_size;
     wire [1:0]            sel_op;
     
     // Señales FSM
@@ -111,7 +116,12 @@ module hdc_accelerator_top #(
     wire rst = ~rst_n;
     
     //Calculo de iteraciones en el componente
-    assign component_iterations = vector_size / FIFO_DATA_WIDTH;
+    assign component_iterations = vector_A_size / FIFO_DATA_WIDTH;
+    
+    //debug
+    wire [3:0] state;
+    assign done_debug = done;
+    assign state_debug = state;
     
     // OBI Slave
     obi_slave_if #(
@@ -135,8 +145,9 @@ module hdc_accelerator_top #(
         .addr_A(addr_A),
         .addr_B(addr_B),
         .addr_C(addr_C),
-        .vector_size(vector_size),
+        .vector_A_size(vector_A_size),
         .vector_B_size(vector_B_size),
+        .vector_C_size(vector_C_size),
         .sel_op(sel_op)
     );
     //FSM
@@ -152,8 +163,9 @@ module hdc_accelerator_top #(
         .addr_A(addr_A),
         .addr_B(addr_B),
         .addr_C(addr_C),
-        .vector_size(vector_size),
+        .vector_A_size(vector_A_size),
         .vector_B_size(vector_B_size),
+        .vector_C_size(vector_C_size),
         .busy(busy),
         .done(done),
     
@@ -182,7 +194,9 @@ module hdc_accelerator_top #(
         .deserializer_C_start(deserializer_C_start),
         .deserializer_C_data_out(data_C_out),
         .deserializer_C_busy(deserializer_C_busy),
-        .deserializer_C_done(deserializer_C_done)
+        .deserializer_C_done(deserializer_C_done),
+        
+        .state_debug(state)
     );
 
 

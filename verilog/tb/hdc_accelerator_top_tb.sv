@@ -38,6 +38,10 @@ module hdc_accelerator_tb;
     // Memoria simulada
     localparam MEM_DEPTH = 16;
     logic [DATA_WIDTH-1:0] memory [0:MEM_DEPTH-1];
+    
+    //Debug
+    wire done_debug;
+    wire [3:0] state_debug;
 
     // Clock
     always #5 clk = ~clk;
@@ -69,7 +73,9 @@ module hdc_accelerator_tb;
         .mst_obi_be_o(mst_obi_be_o),
         .mst_obi_gnt_i(mst_obi_gnt_i),
         .mst_obi_rdata_i(mst_obi_rdata_i),
-        .mst_obi_rvalid_i(mst_obi_rvalid_i)
+        .mst_obi_rvalid_i(mst_obi_rvalid_i),
+        .done_debug(done_debug),
+        .state_debug(state_debug)
     );
 
     // Tareas de escritura y lectura OBI slave
@@ -124,7 +130,7 @@ module hdc_accelerator_tb;
         
         //Vector A
         memory[0] = 32'hABCDEEFF;
-        memory[1] = 32'h4848ABCD;
+        memory[1] = 32'hABCDEEF0;
 
         #20;
         rst_n = 1;
@@ -133,18 +139,19 @@ module hdc_accelerator_tb;
         write_reg(32'h00000000, 32'h00000000); // addr_A
         write_reg(32'h00000004, 32'h0000000C); // addr_B
         write_reg(32'h00000008, 32'h00000010); // addr_C
-        write_reg(32'h0000000C, 32'h00000040); // vector_size
-        write_reg(32'h00000010, 32'h00000040); // vector_B_size
-        write_reg(32'h00000014, 32'h00000001); // sel_op
-        write_reg(32'h00000018, 32'h00000001); // start
+        write_reg(32'h0000000C, 32'h00000020); // vector_A_size
+        write_reg(32'h00000010, 32'h00000020); // vector_B_size
+        write_reg(32'h00000014, 32'h00000020); // vector_C_size
+        write_reg(32'h00000018, 32'h00000003); // sel_op
+        write_reg(32'h0000001C, 32'h00000001); // start
 
         // Esperar a que done se active
-        wait (dut.done);
+        wait (done_debug);
 
         // Mostrar datos escritos en C
         $display("Resultado vector C:");
         for (int i = 0; i < MEM_DEPTH; i++) begin
-            $display("C[%0d] = %h", i, memory[12'h30 + i]);
+            $display("C[%0d] = %h", i, memory[i]);
         end
         
         #10

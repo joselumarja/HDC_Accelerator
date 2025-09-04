@@ -22,22 +22,24 @@ module obi_slave_if #(
     output reg [ADDR_WIDTH-1:0] addr_A,
     output reg [ADDR_WIDTH-1:0] addr_B,
     output reg [ADDR_WIDTH-1:0] addr_C,
-    output reg [ADDR_WIDTH-1:0] vector_size,
+    output reg [ADDR_WIDTH-1:0] vector_A_size,
     output reg [ADDR_WIDTH-1:0] vector_B_size,
+    output reg [ADDR_WIDTH-1:0] vector_C_size,
     output reg [1:0]            sel_op,
     
     output wire [1:0] state_debug
 );
 
     // Direcciones de los registros (puedes ajustarlas)
-    localparam ADDR_ADDR_A       = 32'h00;
-    localparam ADDR_ADDR_B       = 32'h04;
-    localparam ADDR_ADDR_C       = 32'h08;
-    localparam ADDR_VECTOR_SIZE  = 32'h0C;
-    localparam ADDR_VECTOR_B_SIZE= 32'h10;
-    localparam ADDR_SEL_OP       = 32'h14;
-    localparam ADDR_START        = 32'h18;
-    localparam ADDR_DONE         = 32'h1C;
+    localparam ADDR_ADDR_A          = 32'h00;
+    localparam ADDR_ADDR_B          = 32'h04;
+    localparam ADDR_ADDR_C          = 32'h08;
+    localparam ADDR_VECTOR_A_SIZE   = 32'h0C;
+    localparam ADDR_VECTOR_B_SIZE   = 32'h10;
+    localparam ADDR_VECTOR_C_SIZE   = 32'h14;
+    localparam ADDR_SEL_OP          = 32'h18;
+    localparam ADDR_START           = 32'h1C;
+    localparam ADDR_DONE            = 32'h20;
 
     // Señales internas
     typedef enum logic [1:0] {
@@ -87,8 +89,9 @@ module obi_slave_if #(
             addr_A        <= 0;
             addr_B        <= 0;
             addr_C        <= 0;
-            vector_size   <= 0;
+            vector_A_size <= 0;
             vector_B_size <= 0;
+            vector_C_size <= 0;
             sel_op        <= 0;
             start         <= 0;
         end else if (obi_req && obi_we) begin
@@ -96,8 +99,9 @@ module obi_slave_if #(
                 ADDR_ADDR_A:        addr_A        <= obi_wdata;
                 ADDR_ADDR_B:        addr_B        <= obi_wdata;
                 ADDR_ADDR_C:        addr_C        <= obi_wdata;
-                ADDR_VECTOR_SIZE:   vector_size   <= obi_wdata;
+                ADDR_VECTOR_A_SIZE: vector_A_size <= obi_wdata;
                 ADDR_VECTOR_B_SIZE: vector_B_size <= obi_wdata;
+                ADDR_VECTOR_C_SIZE: vector_C_size <= obi_wdata;
                 ADDR_SEL_OP:        sel_op        <= obi_wdata[1:0];
                 ADDR_START:         start         <= obi_wdata[0:0];
             endcase
@@ -110,8 +114,9 @@ module obi_slave_if #(
             ADDR_ADDR_A:        obi_rdata = addr_A;
             ADDR_ADDR_B:        obi_rdata = addr_B;
             ADDR_ADDR_C:        obi_rdata = addr_C;
-            ADDR_VECTOR_SIZE:   obi_rdata = vector_size;
+            ADDR_VECTOR_A_SIZE: obi_rdata = vector_A_size;
             ADDR_VECTOR_B_SIZE: obi_rdata = vector_B_size;
+            ADDR_VECTOR_C_SIZE: obi_rdata = vector_C_size;
             ADDR_SEL_OP:        obi_rdata = {30'b0, sel_op};
             ADDR_START:         obi_rdata = 32'd0;  // No lectura útil
             ADDR_DONE:          obi_rdata = {31'b0, done};

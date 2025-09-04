@@ -134,7 +134,7 @@ module hdc_accelerator_component_tb;
         fifo_A_din = 0;
         fifo_B_din = 0;
         vector_size = 16;
-        sel_op = 2'b00; // Cambia según la operación deseada
+        sel_op = 2'b11; // Cambia según la operación deseada
 
         #20;
         ap_rst = 0;

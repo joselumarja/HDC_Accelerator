@@ -10,7 +10,7 @@
 #define PERMUTATION 2
 #define SIMILARITY 3
 
-#define FIFO_SIZE 64
+#define FIFO_SIZE 16
 #define BLOCK_SIZE 32
 
 #define DATA_SIZE 8

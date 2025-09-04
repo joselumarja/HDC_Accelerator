@@ -3,12 +3,11 @@
 void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op, hls::stream<data_t, FIFO_SIZE> &fifo_A, hls::stream<data_t, FIFO_SIZE> &fifo_B, hls::stream<data_t, FIFO_SIZE> &fifo_C){
 
 #pragma HLS DATAFLOW
-//#pragma HLS PIPELINE II=1
 
     unsigned int i = 0;
 
     data_t A, B, C, shifting_register, overflow_block_bits;
-    block_data_t similarity_counter;
+    block_data_t shift_value, similarity_counter;
 
     switch(sel_op){
     case BINDING:
@@ -40,13 +39,16 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
     case PERMUTATION:
 
     	//Cantidad de shift a la izquierda (MAXIMO DATA_SIZE)
-    	B = fifo_B.read();
+		PermutationOpShiftReadLoop: for(unsigned int i=0; i<BLOCK_SIZE/DATA_SIZE; i++){
+    		B = fifo_B.read();
+			shift_value.range(((i+1)*DATA_SIZE)-1, i*DATA_SIZE) = B;
+    	}
 
     	A = fifo_A.read();
 
-    	overflow_block_bits = A >> (DATA_SIZE - B);
+    	overflow_block_bits = A >> (DATA_SIZE - shift_value);
 
-    	shifting_register = A << B;
+    	shifting_register = A << shift_value;
 
 #pragma HLS PIPELINE II=1
     	PermutationOpControlLoop: for(i=0; i<vector_size-1; i++){
@@ -54,9 +56,9 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
 			A = fifo_A.read();
 
 			//Curent block is shifted block plus next block overflow
-			C = shifting_register | A >> (DATA_SIZE-B);
+			C = shifting_register | (A >> (DATA_SIZE-shift_value));
 
-			shifting_register = A << B;
+			shifting_register = A << shift_value;
 
 			fifo_C.write(C);
     	}
@@ -81,7 +83,7 @@ void hdc_accelerator_component(const unsigned int vector_size, const op_t sel_op
 
 			//Popcount
 			PopCountOperationLoop: for(unsigned int j=0; j<DATA_SIZE; j++){
-				if(C[j])
+				if(!C[j])
 					similarity_counter ++;
 			}
 		}
