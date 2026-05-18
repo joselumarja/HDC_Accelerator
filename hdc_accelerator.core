@@ -1,0 +1,33 @@
+CAPI=2:
+
+name: uclm:arco:hdc_obi:1.0.0
+description: Hyperdimensional computing obi module.
+
+filesets:
+  rtl:
+    files:
+    - verilog/deserializer.sv
+    - verilog/fifo.sv
+    - verilog/hdc_accelerator_top.sv
+    - verilog/hdc_fsm_control.sv
+    - verilog/obi_master_if.sv
+    - verilog/obi_slave_if.sv
+    - verilog/serializer.sv
+    - verilog/hdc_accelerator_component/hdc_accelerator_component.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_BindingOpControlLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_BundlingOpControlLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_PermutationOpControlLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_PermutationOpShiftReadLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_SimilarityOpControlLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_SimilarityOpWriteLoop.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_flow_control_loop_pipe_sequential_init.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_partselect_8ns_32ns_5ns_8_1_1.v
+    - verilog/hdc_accelerator_component/hdc_accelerator_component_partset_32ns_32ns_8ns_5ns_32_1_1.v
+    file_type: systemVerilogSource
+
+targets:
+  default: 
+    filesets:
+    - rtl
+    toplevel: hdc_accelerator_top
