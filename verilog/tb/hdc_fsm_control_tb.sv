@@ -71,6 +71,11 @@ module hdc_fsm_control_tb;
     wire deserializer_C_busy;
     wire deserializer_C_done;
     wire [DATA_WIDTH-1:0] data_C_out;
+    
+    //Fifo round robbin arbiter
+    reg [2:0] fifo_data_movement_request;
+    reg  [1:0] rr_priority_base;
+    wire  [1:0] fifo_grant;
 
     //Señales del componente HLS
     //reg ap_start;
@@ -122,6 +127,10 @@ module hdc_fsm_control_tb;
         .fifo_A_size(fifo_A_size),
         .fifo_B_size(fifo_B_size),
         .fifo_C_size(fifo_C_size),
+        
+        .rr_priority_base(rr_priority_base),
+        .fifo_data_movement_request(fifo_data_movement_request),
+        .fifo_grant(fifo_grant),
     
         .serializer_A_start(serializer_A_start),
         .serializer_A_data_in(data_A_in),
@@ -251,6 +260,13 @@ module hdc_fsm_control_tb;
         .fifo_dout(fifo_C_dout),
         .rd_en(fifo_C_rd_en),
         .fifo_empty(fifo_C_empty)
+    );
+    
+    //Round robbin arbiter
+    fifo_round_robin_arbiter round_robin_arbiter_dut (
+        .rr_priority_base(rr_priority_base),
+        .fifo_data_movement_request(fifo_data_movement_request),
+        .fifo_grant(fifo_grant)
     );
 
 

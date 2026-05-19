@@ -32,6 +32,11 @@ module hdc_fsm_control #(
     input wire  [$clog2(FIFO_DEPTH):0]  fifo_A_size,
     input wire  [$clog2(FIFO_DEPTH):0]  fifo_B_size,
     input wire  [$clog2(FIFO_DEPTH):0]  fifo_C_size,
+
+    //Fifo round robin arbiter
+    output reg [2:0] fifo_data_movement_request,
+    output reg  [1:0] rr_priority_base,
+    input wire  [1:0] fifo_grant,
     
     //Serializador A
     output  reg                 serializer_A_start,
@@ -72,14 +77,14 @@ module hdc_fsm_control #(
         FINISHED
     } state_t;
     
-    typedef enum logic [2:0] {
+    typedef enum logic [1:0] {
         A,
         B,
         C
     } fifo_id_t;
 
     state_t state = IDLE, next_state = IDLE;
-    fifo_id_t fifo, next_fifo;
+    fifo_id_t fifo;
     
     //Vectors memory signals
     logic [ADDR_WIDTH-1:0] counter [2:0];
@@ -97,6 +102,12 @@ module hdc_fsm_control #(
     assign vector_finish[A] = counter[A] >= size[A];
     assign vector_finish[B] = counter[B] >= size[B];
     assign vector_finish[C] = counter[C] >= size[C];
+
+    //Data movement requests
+    assign fifo_data_movement_request[0] = fifo_A_size <= READ_THRESHOLD && !vector_finish[A];
+    assign fifo_data_movement_request[1] = fifo_B_size <= READ_THRESHOLD && !vector_finish[B];
+    assign fifo_data_movement_request[2] = fifo_C_size >= READ_THRESHOLD && !vector_finish[C];
+    assign fifo_data_movement_request[3] = 0;
     
     //Señales de estado
     assign busy = !(state == IDLE);
@@ -113,10 +124,15 @@ module hdc_fsm_control #(
     always @(*) begin
         
         next_state = state;
-        next_fifo = fifo;
-        data_movement = 0;
+        data_movement = |fifo_data_movement_request;
         
         obi_transference_rw = rw;
+
+        serializer_A_start = 0;
+        serializer_B_start = 0;
+        deserializer_C_start = 0;
+
+        obi_transference_start = 0;
         
         case(state)
             IDLE:
@@ -128,39 +144,14 @@ module hdc_fsm_control #(
             end
             
             CHECK_FIFO: begin
-                //Comprueba si las fifos han llegado al umbral de accion (r/w en memoria)
-                case(fifo)
-                    A:
-                        data_movement = fifo_A_size <= READ_THRESHOLD;
-                    B:
-                        data_movement = fifo_B_size <= READ_THRESHOLD;
-                    C:
-                        data_movement = fifo_C_size >= READ_THRESHOLD;
-                endcase
                 
                 //Movimiento de datos
                 if(data_movement) begin
-                    if(fifo==C)
+                    if(fifo_grant==C)
                         next_state = REQUEST_SER_DES;
                     else
                         next_state = RW_OBI;
-                        
-                end else begin
-                    //No hay movimiento de datos, se calcula la siguiente fifo a checkear
-                    case(fifo)
-                        A:
-                            if(vector_finish[B]) next_fifo = C;
-                            else next_fifo = B;
-                        B:
-                            if(vector_finish[C]) next_fifo = A;
-                            else next_fifo = C;
-                        C:  
-                            if(vector_finish[A]) begin
-                                if (vector_finish[B]) next_fifo = C;
-                                else next_fifo = B;
-                            end else next_fifo = A;
-                    endcase
-                 end
+                end
                  
                  //En caso de que todas las fifos hayan terminado el siguiente estado es finalizar
                  if(vector_finish[A] && vector_finish[B] && vector_finish[C])
@@ -168,19 +159,15 @@ module hdc_fsm_control #(
             end
             
             RW_OBI: begin
+                obi_transference_start = 1;
+
                 next_state = WAIT_OBI;
             end
                 
             WAIT_OBI: begin
-                if(obi_transference_done)
+                if(obi_transference_done) begin
                     if(fifo == C) begin
                         next_state = CHECK_FIFO;
-                        
-                        //Calcular la siguiente fifo
-                        if(vector_finish[A]) 
-                            if (vector_finish[B]) next_fifo = C;
-                            else next_fifo = B;
-                        else next_fifo = A;
                         
                     end else begin
                         next_state = REQUEST_SER_DES;
@@ -195,7 +182,9 @@ module hdc_fsm_control #(
                                 if(!deserializer_C_busy) next_state = SER_DES;
                         endcase
                     end
+                end
             end   
+
             REQUEST_SER_DES: begin
                 //Se mantiene en el estado hasta que el recurso esta libre
                 case(fifo)
@@ -207,29 +196,35 @@ module hdc_fsm_control #(
                         if(!deserializer_C_busy) next_state = SER_DES;
                 endcase
             end
+
             WAIT_DES:
                 if(deserializer_C_done) next_state = RW_OBI;
                 
-            SER_DES:begin
-                
-                if(fifo==C) next_state = WAIT_DES;
-                else begin
-                    next_state = CHECK_FIFO;
-                    
-                    //Calcular siguiente fifo
-                    case(fifo)
-                        A:
-                            if(vector_finish[B]) next_fifo = C;
-                            else next_fifo = B;
-                        B:
-                            if(vector_finish[C]) next_fifo = A;
-                            else next_fifo = C;
-                    endcase
-                end
+            SER_DES: begin
+
+                case (fifo)
+                    A: begin
+                        serializer_A_data_in = obi_transference_rdata;
+                        serializer_A_start = 1;
+                        next_state = CHECK_FIFO;
+                    end
+                    B: begin
+                        serializer_B_data_in = obi_transference_rdata;
+                        serializer_B_start = 1;
+                        next_state = CHECK_FIFO;
+                    end
+                    C: begin
+                        deserializer_C_start = 1;
+                        next_state = WAIT_DES;
+                    end
+                        
+                endcase
             end
+
             FINISHED: begin
                 next_state = IDLE;
             end
+
         endcase
     end
     
@@ -239,12 +234,13 @@ module hdc_fsm_control #(
             fifo <= A;
         end else begin
             state <= next_state;
-            fifo <= next_fifo;
         end
     end
 
     always_ff @(posedge clk) begin
         if (rst) begin
+            fifo <= A;
+            rr_priority_base <= A;
             counter[A] <= 0;
             counter[B] <= 0;
             counter[C] <= 0;
@@ -258,6 +254,8 @@ module hdc_fsm_control #(
             case(state)
                 
                 LOAD: begin
+                    //fifo <= fifo_id_t'(fifo_grant);
+                    rr_priority_base <= A;
                     counter[A] <= 0;
                     counter[B] <= 0;
                     counter[C] <= 0;
@@ -267,6 +265,10 @@ module hdc_fsm_control #(
                     size[A] <= vector_A_size;
                     size[B] <= vector_B_size;
                     size[C] <= vector_C_size;
+                end
+
+                CHECK_FIFO: begin
+                    fifo <= fifo_id_t'(fifo_grant);
                 end
                 
                 RW_OBI: begin
@@ -288,34 +290,14 @@ module hdc_fsm_control #(
                            counter[C] <= counter[C] + DATA_WIDTH;
                         end     
                     endcase
+                end
+                
+                WAIT_OBI: begin
                     
-                    obi_transference_start <= 1;
+                    if(obi_transference_done) begin
+                        rr_priority_base <= fifo_grant + 1;
+                    end
                 end         
-                
-                SER_DES: begin
-                    case (fifo)
-                        A: begin
-                            serializer_A_data_in <= obi_transference_rdata;
-                            serializer_A_start <= 1;
-                        end
-                        B: begin
-                            serializer_B_data_in <= obi_transference_rdata;
-                            serializer_B_start <= 1;
-                        end
-                        C: begin
-                            deserializer_C_start <= 1;
-                        end
-                        
-                    endcase
-                end
-                
-                default: begin
-                    serializer_A_start <= 0;
-                    serializer_B_start <= 0;
-                    deserializer_C_start <= 0;
-        
-                    obi_transference_start <= 0;
-                end
                     
             endcase
         end
