@@ -20,13 +20,7 @@ module hdc_accelerator_obi_wrapper #(
     // HDC -> memoria/interconnect
     // --------------------------------------------------------
     output obi_pkg::obi_req_t  hdc_master_req_o,
-    input  obi_pkg::obi_resp_t hdc_master_resp_i,
-
-    // --------------------------------------------------------
-    // Debug opcional
-    // --------------------------------------------------------
-    output logic       done_debug_o,
-    output logic [3:0] state_debug_o
+    input  obi_pkg::obi_resp_t hdc_master_resp_i
 );
 
     // ========================================================
