@@ -87,7 +87,6 @@ module obi_master_if #(
             end
 
             WAIT_RVALID: begin
-                mst_obi_req_o = 1'b1;
                 if (mst_obi_rvalid_i)
                     next_state = DONE;
             end

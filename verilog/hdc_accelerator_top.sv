@@ -33,7 +33,7 @@ module hdc_accelerator_top #(
     
     //debug
     output logic                  done_debug,
-    output reg [3:0]                  state_debug
+    output logic [3:0]                  state_debug
 );
 
     // Señales Slave OBI
@@ -96,6 +96,11 @@ module hdc_accelerator_top #(
     wire [FIFO_ADDR_WIDTH:0] fifo_C_size;
     wire fifo_C_full;
     wire fifo_C_empty;
+
+    //Fifo round robin arbiter
+    wire [2:0] fifo_data_movement_request;
+    wire [1:0] rr_priority_base;
+    wire [1:0] fifo_grant;
     
     //Señales Deserializador C
     wire deserializer_C_start;
@@ -180,6 +185,10 @@ module hdc_accelerator_top #(
         .fifo_A_size(fifo_A_size),
         .fifo_B_size(fifo_B_size),
         .fifo_C_size(fifo_C_size),
+
+        .fifo_data_movement_request(fifo_data_movement_request),
+        .rr_priority_base(rr_priority_base),
+        .fifo_grant(fifo_grant),
     
         .serializer_A_start(serializer_A_start),
         .serializer_A_data_in(data_A_in),
@@ -317,6 +326,13 @@ module hdc_accelerator_top #(
         .fifo_dout(fifo_C_dout),
         .rd_en(fifo_C_rd_en),
         .fifo_empty(fifo_C_empty)
+    );
+
+    //Arbitro Round Robin
+    fifo_round_robin_arbiter round_robin_arbiter_inst (
+        .rr_priority_base(rr_priority_base),
+        .fifo_data_movement_request(fifo_data_movement_request),
+        .fifo_grant(fifo_grant)
     );
 
 

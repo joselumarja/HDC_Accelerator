@@ -1,111 +1,147 @@
 `timescale 1ns/1ps
 
 module hdc_fsm_control_tb;
-
+    // ------------------------------------------------------------
     // Parámetros
-    parameter FIFO_DEPTH = 16;
-    parameter DATA_WIDTH  = 32;
-    parameter ADDR_WIDTH  = 32;
-    parameter FIFO_DATA_WIDTH = 8;
-    parameter FIFO_ADDR_WIDTH = $clog2(FIFO_DEPTH);
-    
-    //Señales generales
-    reg clk, rst;
-    
-    // Señales FSM
-    reg start;
-    reg [ADDR_WIDTH-1:0] addr_A, addr_B, addr_C;
-    reg [ADDR_WIDTH-1:0] vector_A_size, vector_B_size, vector_C_size;
-    wire busy, done;
-    
-    // Señales Master OBI simulado
-    wire obi_transference_start;
-    wire obi_transference_rw;
-    wire [ADDR_WIDTH-1:0] obi_transference_addr;
-    wire [DATA_WIDTH-1:0] obi_transference_wdata;
-    wire [DATA_WIDTH-1:0] obi_transference_rdata;
-    wire obi_transference_done;
-    wire obi_transference_busy;
+    // ------------------------------------------------------------
+    localparam int ADDR_WIDTH    = 32;
+    localparam int DATA_WIDTH    = 32;
+    localparam int FIFO_DEPTH    = 16;
+    localparam int READ_THRESHOLD = 4;
+    localparam int MEM_DEPTH     = 256;
+    localparam int DELAY_CYCLES  = 2;
+    localparam int NUM_TRANSFERS = 4;
 
-    // Señales FIFO A
-    wire fifo_A_wr_en;
-    wire fifo_A_rd_en;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_A_din;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_A_dout;
-    wire [FIFO_ADDR_WIDTH:0] fifo_A_size;
-    wire fifo_A_full;
-    wire fifo_A_empty;
-    
-    //Señales Serializador A
-    reg serializer_A_start;
-    wire serializer_A_busy;
-    wire serializer_A_done;
-    reg [DATA_WIDTH-1:0] data_A_in;
+    // Valores de estado según el orden del enum de hdc_fsm_control
+    localparam logic [3:0] ST_IDLE            = 4'd0;
+    localparam logic [3:0] ST_LOAD            = 4'd1;
+    localparam logic [3:0] ST_CHECK_FIFO      = 4'd2;
+    localparam logic [3:0] ST_RW_OBI          = 4'd3;
+    localparam logic [3:0] ST_WAIT_OBI        = 4'd4;
+    localparam logic [3:0] ST_REQUEST_SER_DES = 4'd5;
+    localparam logic [3:0] ST_SER_DES         = 4'd6;
+    localparam logic [3:0] ST_WAIT_DES        = 4'd7;
+    localparam logic [3:0] ST_FINISHED        = 4'd8;
 
-    // Señales FIFO B
-    wire fifo_B_wr_en;
-    wire fifo_B_rd_en;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_B_din;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_B_dout;
-    wire [FIFO_ADDR_WIDTH:0] fifo_B_size;
-    wire fifo_B_full;
-    wire fifo_B_empty;
-    
-    //Señales Serializador B
-    reg serializer_B_start;
-    wire serializer_B_busy;
-    wire serializer_B_done;
-    reg [DATA_WIDTH-1:0] data_B_in;
+    // Identificadores de FIFO
+    localparam logic [1:0] FIFO_A = 2'd0;
+    localparam logic [1:0] FIFO_B = 2'd1;
+    localparam logic [1:0] FIFO_C = 2'd2;
 
-    // Señales FIFO C
-    wire fifo_C_wr_en;
-    wire fifo_C_rd_en;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_C_din;
-    wire [FIFO_DATA_WIDTH-1:0] fifo_C_dout;
-    wire [FIFO_ADDR_WIDTH:0] fifo_C_size;
-    wire fifo_C_full;
-    wire fifo_C_empty;
-    
-    //Señales Deserializador C
-    reg deserializer_C_start;
-    wire deserializer_C_busy;
-    wire deserializer_C_done;
-    wire [DATA_WIDTH-1:0] data_C_out;
-    
-    //Fifo round robbin arbiter
-    reg [2:0] fifo_data_movement_request;
-    reg  [1:0] rr_priority_base;
-    wire  [1:0] fifo_grant;
+    // Direcciones de prueba
+    localparam logic [ADDR_WIDTH-1:0] ADDR_A = 32'h0000_0000;
+    localparam logic [ADDR_WIDTH-1:0] ADDR_B = 32'h0000_0004;
+    localparam logic [ADDR_WIDTH-1:0] ADDR_C = 32'h0000_0008;
 
-    //Señales del componente HLS
-    //reg ap_start;
-    wire ap_done, ap_ready, ap_idle;
-    reg [31:0] component_iterations;
-    reg [1:0] sel_op;
+    // Datos de prueba
+    localparam logic [DATA_WIDTH-1:0] DATA_A = 32'hAAAA_0001;
+    localparam logic [DATA_WIDTH-1:0] DATA_B = 32'hBBBB_0002;
+    localparam logic [DATA_WIDTH-1:0] DATA_C = 32'hCCCC_0003;
 
-    // Alias para el componente
-    wire fifo_A_empty_n = ~fifo_A_empty;
-    wire fifo_B_empty_n = ~fifo_B_empty;
-    wire fifo_C_full_n  = ~fifo_C_full;
-    
-   
-    //debug
-    wire [3:0] state_debug;
-    wire [2:0] fifo_debug;
-    wire [2:0] vector_finish_debug;
-    
-    // Generación de reloj
-    always #0.5 clk = ~clk;
-    
-    //FSM
+    // ------------------------------------------------------------
+    // Señales generales
+    // ------------------------------------------------------------
+    logic clk;
+    logic rst;
+
+    logic start;
+    logic [ADDR_WIDTH-1:0] addr_A;
+    logic [ADDR_WIDTH-1:0] addr_B;
+    logic [ADDR_WIDTH-1:0] addr_C;
+    logic [ADDR_WIDTH-1:0] vector_A_size;
+    logic [ADDR_WIDTH-1:0] vector_B_size;
+    logic [ADDR_WIDTH-1:0] vector_C_size;
+    logic busy;
+    logic done;
+
+    // ------------------------------------------------------------
+    // Señales hacia OBI simulado
+    // ------------------------------------------------------------
+    logic                  obi_transference_start;
+    logic                  obi_transference_rw;
+    logic [ADDR_WIDTH-1:0] obi_transference_addr;
+    logic [DATA_WIDTH-1:0] obi_transference_wdata;
+    logic [DATA_WIDTH-1:0] obi_transference_rdata;
+    logic                  obi_transference_done;
+    logic                  obi_transference_busy;
+
+    // ------------------------------------------------------------
+    // Señales de tamaño de FIFO
+    // ------------------------------------------------------------
+    logic [$clog2(FIFO_DEPTH):0] fifo_A_size;
+    logic [$clog2(FIFO_DEPTH):0] fifo_B_size;
+    logic [$clog2(FIFO_DEPTH):0] fifo_C_size;
+
+    // ------------------------------------------------------------
+    // Árbitro round-robin simulado
+    // ------------------------------------------------------------
+    logic [2:0] fifo_data_movement_request;
+    logic [1:0] rr_priority_base;
+    logic [1:0] fifo_grant;
+
+    // ------------------------------------------------------------
+    // Serializadores simulados
+    // ------------------------------------------------------------
+    logic serializer_A_start;
+    logic [DATA_WIDTH-1:0] serializer_A_data_in;
+    logic serializer_A_busy;
+    logic serializer_A_done;
+
+    logic serializer_B_start;
+    logic [DATA_WIDTH-1:0] serializer_B_data_in;
+    logic serializer_B_busy;
+    logic serializer_B_done;
+
+    // ------------------------------------------------------------
+    // Deserializador simulado
+    // ------------------------------------------------------------
+    logic deserializer_C_start;
+    logic [DATA_WIDTH-1:0] deserializer_C_data_out;
+    logic deserializer_C_busy;
+    logic deserializer_C_done;
+
+    // ------------------------------------------------------------
+    // Debug
+    // ------------------------------------------------------------
+    logic [3:0] state_debug;
+    logic [2:0] fifo_debug;
+    logic [2:0] vector_finish_debug;
+
+    // ------------------------------------------------------------
+    // Contadores de comprobación
+    // ------------------------------------------------------------
+    int read_A_count;
+    int read_B_count;
+    int write_C_count;
+
+    int serializer_A_start_count;
+    int serializer_B_start_count;
+    int deserializer_C_start_count;
+
+    logic [1:0] pending_fifo;
+    logic [ADDR_WIDTH-1:0] pending_addr;
+    logic [DATA_WIDTH-1:0] pending_wdata;
+    logic pending_rw;
+    logic pending_valid;
+
+    // ------------------------------------------------------------
+    // Reloj
+    // ------------------------------------------------------------
+    initial clk = 1'b0;
+    always #5 clk = ~clk;
+
+    // ------------------------------------------------------------
+    // DUT: FSM principal
+    // ------------------------------------------------------------
     hdc_fsm_control #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .FIFO_DEPTH(FIFO_DEPTH)
+        .FIFO_DEPTH(FIFO_DEPTH),
+        .READ_THRESHOLD(READ_THRESHOLD)
     ) dut (
         .clk(clk),
         .rst(rst),
-    
+
         .start(start),
         .addr_A(addr_A),
         .addr_B(addr_B),
@@ -115,7 +151,7 @@ module hdc_fsm_control_tb;
         .vector_C_size(vector_C_size),
         .busy(busy),
         .done(done),
-    
+
         .obi_transference_start(obi_transference_start),
         .obi_transference_rw(obi_transference_rw),
         .obi_transference_addr(obi_transference_addr),
@@ -123,43 +159,47 @@ module hdc_fsm_control_tb;
         .obi_transference_rdata(obi_transference_rdata),
         .obi_transference_done(obi_transference_done),
         .obi_transference_busy(obi_transference_busy),
-    
+
         .fifo_A_size(fifo_A_size),
         .fifo_B_size(fifo_B_size),
         .fifo_C_size(fifo_C_size),
-        
-        .rr_priority_base(rr_priority_base),
+
         .fifo_data_movement_request(fifo_data_movement_request),
+        .rr_priority_base(rr_priority_base),
         .fifo_grant(fifo_grant),
-    
+
         .serializer_A_start(serializer_A_start),
-        .serializer_A_data_in(data_A_in),
+        .serializer_A_data_in(serializer_A_data_in),
         .serializer_A_busy(serializer_A_busy),
         .serializer_A_done(serializer_A_done),
-    
+
         .serializer_B_start(serializer_B_start),
-        .serializer_B_data_in(data_B_in),
+        .serializer_B_data_in(serializer_B_data_in),
         .serializer_B_busy(serializer_B_busy),
         .serializer_B_done(serializer_B_done),
-    
+
         .deserializer_C_start(deserializer_C_start),
-        .deserializer_C_data_out(data_C_out),
+        .deserializer_C_data_out(deserializer_C_data_out),
         .deserializer_C_busy(deserializer_C_busy),
         .deserializer_C_done(deserializer_C_done),
-    
+
         .state_debug(state_debug),
         .fifo_debug(fifo_debug),
         .vector_finish_debug(vector_finish_debug)
     );
 
-
-    // OBI Master
+    // ------------------------------------------------------------
+    // Interfaz OBI simulada
+    // ------------------------------------------------------------
     obi_master_simulated_if #(
         .ADDR_WIDTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH)
-    ) obi_master_if (
+        .DATA_WIDTH(DATA_WIDTH),
+        .MEM_DEPTH(MEM_DEPTH),
+        .DELAY_CYCLES(DELAY_CYCLES)
+    ) obi_if (
         .clk(clk),
         .rst(rst),
+
         .start(obi_transference_start),
         .rw(obi_transference_rw),
         .addr(obi_transference_addr),
@@ -169,164 +209,386 @@ module hdc_fsm_control_tb;
         .busy(obi_transference_busy)
     );
 
-    // FIFO A
-    fifo #(
-        .DATA_WIDTH(FIFO_DATA_WIDTH),
-        .DEPTH(FIFO_DEPTH)
-    ) fifo_A (
-        .clk(clk),
-        .rst(rst),
-        .wr_en(fifo_A_wr_en),
-        .rd_en(fifo_A_rd_en),
-        .din(fifo_A_din),
-        .dout(fifo_A_dout),
-        .size(fifo_A_size),
-        .full(fifo_A_full),
-        .empty(fifo_A_empty)
+    // ------------------------------------------------------------
+    // Árbitro round-robin simulado
+    // ------------------------------------------------------------
+    function automatic logic [1:0] rr_select(
+        input logic [2:0] req,
+        input logic [1:0] base
     );
-    
-    serializer #(
-        .IN_WIDTH(DATA_WIDTH),
-        .OUT_WIDTH(FIFO_DATA_WIDTH)
-    ) serializer_A_dut (
-        .clk(clk),
-        .rst(rst),
-        .start(serializer_A_start),
-        .data_in(data_A_in),
-        .busy(serializer_A_busy),
-        .done(serializer_A_done),
-        .fifo_din(fifo_A_din),
-        .wr_en(fifo_A_wr_en),
-        .fifo_full(fifo_A_full)
-    );
+        int k;
+        int idx;
+        begin
+            rr_select = FIFO_A;
 
-    // FIFO B
-    fifo #(
-        .DATA_WIDTH(FIFO_DATA_WIDTH),
-        .DEPTH(FIFO_DEPTH)
-    ) fifo_B (
-        .clk(clk),
-        .rst(rst),
-        .wr_en(fifo_B_wr_en),
-        .rd_en(fifo_B_rd_en),
-        .din(fifo_B_din),
-        .dout(fifo_B_dout),
-        .size(fifo_B_size),
-        .full(fifo_B_full),
-        .empty(fifo_B_empty)
-    );
-    
-    serializer #(
-        .IN_WIDTH(DATA_WIDTH),
-        .OUT_WIDTH(FIFO_DATA_WIDTH)
-    ) serializer_B_dut (
-        .clk(clk),
-        .rst(rst),
-        .start(serializer_B_start),
-        .data_in(data_B_in),
-        .busy(serializer_B_busy),
-        .done(serializer_B_done),
-        .fifo_din(fifo_B_din),
-        .wr_en(fifo_B_wr_en),
-        .fifo_full(fifo_B_full)
-    );
+            for (k = 0; k < 3; k++) begin
+                idx = (base + k) % 3;
 
-    // FIFO C
-    fifo #(
-        .DATA_WIDTH(FIFO_DATA_WIDTH),
-        .DEPTH(FIFO_DEPTH)
-    ) fifo_C (
-        .clk(clk),
-        .rst(rst),
-        .wr_en(fifo_C_wr_en),
-        .rd_en(fifo_C_rd_en),
-        .din(fifo_C_din),
-        .dout(fifo_C_dout),
-        .size(fifo_C_size),
-        .full(fifo_C_full),
-        .empty(fifo_C_empty)
-    );
+                if (req[idx]) begin
+                    rr_select = logic'(idx[1:0]);
+                    return rr_select;
+                end
+            end
+        end
+    endfunction
 
-    deserializer #(
-        .IN_WIDTH(FIFO_DATA_WIDTH),
-        .OUT_WIDTH(DATA_WIDTH)
-    ) deserializer_C_dut (
-        .clk(clk),
-        .rst(rst),
-        .start(deserializer_C_start),
-        .data_out(data_C_out),
-        .busy(deserializer_C_busy),
-        .done(deserializer_C_done),
-        .fifo_dout(fifo_C_dout),
-        .rd_en(fifo_C_rd_en),
-        .fifo_empty(fifo_C_empty)
-    );
-    
-    //Round robbin arbiter
-    fifo_round_robin_arbiter round_robin_arbiter_dut (
-        .rr_priority_base(rr_priority_base),
-        .fifo_data_movement_request(fifo_data_movement_request),
-        .fifo_grant(fifo_grant)
-    );
+    always_comb begin
+        fifo_grant = rr_select(fifo_data_movement_request, rr_priority_base);
+    end
 
+    // ------------------------------------------------------------
+    // Modelo simple de serializadores
+    // ------------------------------------------------------------
+    assign serializer_A_busy = 1'b0;
+    assign serializer_B_busy = 1'b0;
+    assign serializer_A_done = serializer_A_start;
+    assign serializer_B_done = serializer_B_start;
 
-    // Instancia del componente HLS
-    hdc_accelerator_component hls_component_dut (
-        .vector_size(component_iterations),
-        .sel_op(sel_op),
-        .fifo_A_dout(fifo_A_dout),
-        .fifo_A_empty_n(fifo_A_empty_n),
-        .fifo_A_read(fifo_A_rd_en),
-        .fifo_B_dout(fifo_B_dout),
-        .fifo_B_empty_n(fifo_B_empty_n),
-        .fifo_B_read(fifo_B_rd_en),
-        .fifo_C_din(fifo_C_din),
-        .fifo_C_full_n(fifo_C_full_n),
-        .fifo_C_write(fifo_C_wr_en),
-        .ap_clk(clk),
-        .ap_rst(rst),
-        .ap_start(start),
-        .ap_done(ap_done),
-        .ap_ready(ap_ready),
-        .ap_idle(ap_idle)
-    );
-    
-    // Variables auxiliares
-    integer i, size;
+    // ------------------------------------------------------------
+    // Modelo simple de deserializador C
+    // ------------------------------------------------------------
+    assign deserializer_C_data_out = DATA_C;
 
-    // Inicialización y prueba
+    logic [1:0] des_cnt;
+    logic       des_pending;
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            deserializer_C_busy <= 1'b0;
+            deserializer_C_done <= 1'b0;
+            des_cnt             <= '0;
+            des_pending         <= 1'b0;
+        end else begin
+            deserializer_C_done <= 1'b0;
+
+            if (deserializer_C_start) begin
+                deserializer_C_busy <= 1'b1;
+                des_pending         <= 1'b1;
+                des_cnt             <= 2'd1;
+            end else if (des_pending) begin
+                if (des_cnt == 0) begin
+                    deserializer_C_done <= 1'b1;
+                    deserializer_C_busy <= 1'b0;
+                    des_pending         <= 1'b0;
+                end else begin
+                    des_cnt <= des_cnt - 1'b1;
+                end
+            end
+        end
+    end
+
+    // ------------------------------------------------------------
+    // Monitor de operaciones OBI finalizadas
+    // ------------------------------------------------------------
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            pending_fifo  <= FIFO_A;
+            pending_addr  <= '0;
+            pending_wdata <= '0;
+            pending_rw    <= 1'b0;
+            pending_valid <= 1'b0;
+
+            read_A_count  <= 0;
+            read_B_count  <= 0;
+            write_C_count <= 0;
+        end else begin
+
+            // Captura de la transacción en el momento en que la FSM la lanza
+            if (obi_transference_start) begin
+                pending_fifo  <= fifo_debug[1:0];
+                pending_addr  <= obi_transference_addr;
+                pending_wdata <= obi_transference_wdata;
+                pending_rw    <= obi_transference_rw;
+                pending_valid <= 1'b1;
+
+                $display("[%0t] OBI START: fifo=%0d rw=%0d addr=%h wdata=%h",
+                        $time,
+                        fifo_debug[1:0],
+                        obi_transference_rw,
+                        obi_transference_addr,
+                        obi_transference_wdata);
+            end
+
+            // Comprobación cuando el módulo OBI simulado finaliza
+            if (obi_transference_done) begin
+                assert(pending_valid)
+                    else $error("OBI DONE recibido sin transacción pendiente");
+
+                $display("[%0t] OBI DONE : fifo=%0d rw=%0d addr=%h rdata=%h",
+                        $time,
+                        pending_fifo,
+                        pending_rw,
+                        pending_addr,
+                        obi_transference_rdata);
+
+                case (pending_fifo)
+
+                    FIFO_A: begin
+                        read_A_count <= read_A_count + 1;
+
+                        assert(pending_rw == 1'b0)
+                            else $error("FIFO A debería generar lectura OBI");
+
+                        assert(pending_addr >= ADDR_A)
+                            else $error("Dirección A por debajo de la base");
+
+                        assert(((pending_addr - ADDR_A) % (DATA_WIDTH/8)) == 0)
+                            else $error("Dirección A no alineada");
+                    end
+
+                    FIFO_B: begin
+                        read_B_count <= read_B_count + 1;
+
+                        assert(pending_rw == 1'b0)
+                            else $error("FIFO B debería generar lectura OBI");
+
+                        assert(pending_addr >= ADDR_B)
+                            else $error("Dirección B por debajo de la base");
+
+                        assert(((pending_addr - ADDR_B) % (DATA_WIDTH/8)) == 0)
+                            else $error("Dirección B no alineada");
+                    end
+
+                    FIFO_C: begin
+                        write_C_count <= write_C_count + 1;
+
+                        assert(pending_rw == 1'b1)
+                            else $error("FIFO C debería generar escritura OBI");
+
+                        assert(pending_addr >= ADDR_C)
+                            else $error("Dirección C por debajo de la base");
+
+                        assert(((pending_addr - ADDR_C) % (DATA_WIDTH/8)) == 0)
+                            else $error("Dirección C no alineada");
+                    end
+
+                    default: begin
+                        $error("FIFO pendiente no válida: %0d", pending_fifo);
+                    end
+                endcase
+
+                pending_valid <= 1'b0;
+            end
+        end
+    end
+
+    // ------------------------------------------------------------
+    // Monitor de serializadores/deserializador
+    // ------------------------------------------------------------
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            serializer_A_start_count   <= 0;
+            serializer_B_start_count   <= 0;
+            deserializer_C_start_count <= 0;
+        end else begin
+
+            if (serializer_A_start) begin
+                serializer_A_start_count <= serializer_A_start_count + 1;
+
+                $display("[%0t] SERIALIZER A START: data=%h",
+                        $time,
+                        serializer_A_data_in);
+            end
+
+            if (serializer_B_start) begin
+                serializer_B_start_count <= serializer_B_start_count + 1;
+
+                $display("[%0t] SERIALIZER B START: data=%h",
+                        $time,
+                        serializer_B_data_in);
+            end
+
+            if (deserializer_C_start) begin
+                deserializer_C_start_count <= deserializer_C_start_count + 1;
+
+                $display("[%0t] DESERIALIZER C START",
+                        $time);
+            end
+        end
+    end
+
+    // ------------------------------------------------------------
+    // Timeout
+    // ------------------------------------------------------------
+    task automatic wait_done_with_timeout(input int max_cycles);
+        int c;
+        begin
+            c = 0;
+
+            while (!done && c < max_cycles) begin
+                @(posedge clk);
+                c++;
+            end
+
+            if (!done) begin
+                $fatal(1, "Timeout: la FSM no llegó a done en %0d ciclos", max_cycles);
+            end
+        end
+    endtask
+
+    // ------------------------------------------------------------
+    // Reset
+    // ------------------------------------------------------------
+    task automatic reset_dut();
+        begin
+            rst   = 1'b1;
+            start = 1'b0;
+
+            addr_A = '0;
+            addr_B = '0;
+            addr_C = '0;
+
+            vector_A_size = '0;
+            vector_B_size = '0;
+            vector_C_size = '0;
+
+            fifo_A_size = '0;
+            fifo_B_size = '0;
+            fifo_C_size = '0;
+
+            repeat (4) @(posedge clk);
+            rst = 1'b0;
+            repeat (2) @(posedge clk);
+
+            assert(busy == 1'b0)
+                else $error("Tras reset, busy debería estar a 0");
+
+            assert(done == 1'b0)
+                else $error("Tras reset, done debería estar a 0");
+        end
+    endtask
+
+    // ------------------------------------------------------------
+    // Load
+    // ------------------------------------------------------------
+    always_ff @(posedge clk) begin
+    if (state_debug == ST_LOAD) begin
+        $display("[%0t] LOAD INPUTS: addr_A=%h addr_B=%h addr_C=%h size_A=%0d size_B=%0d size_C=%0d",
+                 $time,
+                 addr_A,
+                 addr_B,
+                 addr_C,
+                 vector_A_size,
+                 vector_B_size,
+                 vector_C_size);
+    end
+
+    if (state_debug == ST_CHECK_FIFO) begin
+        $display("[%0t] CHECK_FIFO: req=%b grant=%0d rr_base=%0d finish=%b",
+                 $time,
+                 fifo_data_movement_request,
+                 fifo_grant,
+                 rr_priority_base,
+                 vector_finish_debug);
+    end
+end
+
+    // ------------------------------------------------------------
+    // Test principal
+    // ------------------------------------------------------------
     initial begin
-        // Reset inicial
-        clk = 0;
-        rst = 1;
-        start = 0;
-        
-        size = 8192;
-        
-        vector_A_size = size;
-        vector_B_size = size;
-        vector_C_size = 32;
-        sel_op = 2'b11; // Cambia según la operación deseada
-        
-        addr_A = 32'h0000_0000;
-        addr_B = 32'h0000_0100;
-        addr_C = 32'h0000_0200;
-        
-        component_iterations = vector_A_size / FIFO_DATA_WIDTH;
+        $display("\n--- TEST UNITARIO hdc_fsm_control ---\n");
 
-        #2;
-        rst = 0;
-        
-        start = 1;
+        reset_dut();
 
-        @(posedge clk)
-        
-        start = 0;
-        
-        wait(done)
-        
-        #2
-        
+        // Inicialización de memoria simulada OBI.
+        // La memoria es word-addressable, por eso se usa addr[31:2].
+        obi_if.mem[ADDR_A[ADDR_WIDTH-1:2] + 0] = 32'hAAAA_0001;
+        obi_if.mem[ADDR_A[ADDR_WIDTH-1:2] + 1] = 32'hAAAA_0002;
+        obi_if.mem[ADDR_A[ADDR_WIDTH-1:2] + 2] = 32'hAAAA_0003;
+        obi_if.mem[ADDR_A[ADDR_WIDTH-1:2] + 3] = 32'hAAAA_0004;
+
+        obi_if.mem[ADDR_B[ADDR_WIDTH-1:2] + 0] = 32'hBBBB_0001;
+        obi_if.mem[ADDR_B[ADDR_WIDTH-1:2] + 1] = 32'hBBBB_0002;
+        obi_if.mem[ADDR_B[ADDR_WIDTH-1:2] + 2] = 32'hBBBB_0003;
+        obi_if.mem[ADDR_B[ADDR_WIDTH-1:2] + 3] = 32'hBBBB_0004;
+
+        obi_if.mem[ADDR_C[ADDR_WIDTH-1:2] + 0] = 32'h0000_0000;
+        obi_if.mem[ADDR_C[ADDR_WIDTH-1:2] + 1] = 32'h0000_0000;
+        obi_if.mem[ADDR_C[ADDR_WIDTH-1:2] + 2] = 32'h0000_0000;
+        obi_if.mem[ADDR_C[ADDR_WIDTH-1:2] + 3] = 32'h0000_0000;
+
+        // La FSM incrementa counter[A/B/C] en DATA_WIDTH.
+        // Por tanto, con vector_X_size = DATA_WIDTH se fuerza una única transferencia por vector.
+        addr_A = ADDR_A;
+        addr_B = ADDR_B;
+        addr_C = ADDR_C;
+
+        vector_A_size = NUM_TRANSFERS * DATA_WIDTH;
+        vector_B_size = NUM_TRANSFERS * DATA_WIDTH;
+        vector_C_size = NUM_TRANSFERS * DATA_WIDTH;
+
+        // Forzamos que A y B pidan lectura:
+        // fifo_A_size <= READ_THRESHOLD
+        // fifo_B_size <= READ_THRESHOLD
+        fifo_A_size = 0;
+        fifo_B_size = 0;
+
+        // Forzamos que C pida escritura:
+        // fifo_C_size >= READ_THRESHOLD
+        fifo_C_size = READ_THRESHOLD;
+
+        @(negedge clk);
+        start = 1'b1;
+
+        @(negedge clk);
+        start = 1'b0;
+
+        wait_done_with_timeout(200);
+
+        @(posedge clk);
+
+        // --------------------------------------------------------
+        // Comprobaciones finales
+        // --------------------------------------------------------
+        assert(read_A_count == NUM_TRANSFERS)
+            else $error("Lecturas A incorrectas. Esperadas=%0d Obtenidas=%0d",
+                        NUM_TRANSFERS, read_A_count);
+
+        assert(read_B_count == NUM_TRANSFERS)
+            else $error("Lecturas B incorrectas. Esperadas=%0d Obtenidas=%0d",
+                        NUM_TRANSFERS, read_B_count);
+
+        assert(write_C_count == NUM_TRANSFERS)
+            else $error("Escrituras C incorrectas. Esperadas=%0d Obtenidas=%0d",
+                        NUM_TRANSFERS, write_C_count);
+
+        assert(serializer_A_start_count == 1)
+            else $error("serializer_A_start debería activarse una vez, activaciones=%0d",
+                        serializer_A_start_count);
+
+        assert(serializer_B_start_count == 1)
+            else $error("serializer_B_start debería activarse una vez, activaciones=%0d",
+                        serializer_B_start_count);
+
+        assert(deserializer_C_start_count == 1)
+            else $error("deserializer_C_start debería activarse una vez, activaciones=%0d",
+                        deserializer_C_start_count);
+
+        assert(obi_if.mem[ADDR_C[ADDR_WIDTH-1:2]] == DATA_C)
+            else $error("La memoria OBI no contiene el dato esperado en C. Esperado=%h Obtenido=%h",
+                        DATA_C, obi_if.mem[ADDR_C[ADDR_WIDTH-1:2]]);
+
+        assert(vector_finish_debug[0] == 1'b1)
+            else $error("vector_finish_debug[A] debería estar activo");
+
+        assert(vector_finish_debug[1] == 1'b1)
+            else $error("vector_finish_debug[B] debería estar activo");
+
+        assert(vector_finish_debug[2] == 1'b1)
+            else $error("vector_finish_debug[C] debería estar activo");
+
+        $display("Lecturas A:              %0d", read_A_count);
+        $display("Lecturas B:              %0d", read_B_count);
+        $display("Escrituras C:            %0d", write_C_count);
+        $display("serializer_A_start:      %0d", serializer_A_start_count);
+        $display("serializer_B_start:      %0d", serializer_B_start_count);
+        $display("deserializer_C_start:    %0d", deserializer_C_start_count);
+        $display("Memoria C final:         0x%08h", obi_if.mem[ADDR_C[ADDR_WIDTH-1:2]]);
+
+        $display("\n--- TEST FINALIZADO CORRECTAMENTE ---\n");
+
+        #20;
         $stop;
     end
 

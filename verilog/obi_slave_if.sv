@@ -40,6 +40,9 @@ module obi_slave_if #(
     localparam ADDR_SEL_OP          = 32'h18;
     localparam ADDR_START           = 32'h1C;
     localparam ADDR_DONE            = 32'h20;
+    
+    // Peripheral address mask
+    localparam ADDR_MASK = 32'h000000FF;
 
     // Señales internas
     typedef enum logic [1:0] {
@@ -51,13 +54,17 @@ module obi_slave_if #(
 
     state_t state = IDLE, next_state = IDLE;
     
-    reg start, done;
+    logic start, done;
+    
+    wire [ADDR_WIDTH-1:0] addr;
     
     //debug
     assign state_debug = state;
     
     assign done = (state == DONE);
     assign start_out = (state == START_PULSE);
+    
+    assign addr = obi_addr & ADDR_MASK;
     
     //Actualizacion de estado
     always @(posedge clk) begin
@@ -80,6 +87,10 @@ module obi_slave_if #(
                 if(done_in)
                     next_state = DONE;
             end
+            DONE: begin
+                if (start)
+                    next_state = START_PULSE;
+            end
         endcase
     end
 
@@ -94,23 +105,27 @@ module obi_slave_if #(
             vector_C_size <= 0;
             sel_op        <= 0;
             start         <= 0;
-        end else if (obi_req && obi_we) begin
-            case (obi_addr)
-                ADDR_ADDR_A:        addr_A        <= obi_wdata;
-                ADDR_ADDR_B:        addr_B        <= obi_wdata;
-                ADDR_ADDR_C:        addr_C        <= obi_wdata;
-                ADDR_VECTOR_A_SIZE: vector_A_size <= obi_wdata;
-                ADDR_VECTOR_B_SIZE: vector_B_size <= obi_wdata;
-                ADDR_VECTOR_C_SIZE: vector_C_size <= obi_wdata;
-                ADDR_SEL_OP:        sel_op        <= obi_wdata[1:0];
-                ADDR_START:         start         <= obi_wdata[0:0];
-            endcase
+        end else begin
+            start <= 1'b0;  // pulso por defecto
+
+            if (obi_req && obi_we) begin
+                case (addr)
+                    ADDR_ADDR_A:        addr_A        <= obi_wdata;
+                    ADDR_ADDR_B:        addr_B        <= obi_wdata;
+                    ADDR_ADDR_C:        addr_C        <= obi_wdata;
+                    ADDR_VECTOR_A_SIZE: vector_A_size <= obi_wdata;
+                    ADDR_VECTOR_B_SIZE: vector_B_size <= obi_wdata;
+                    ADDR_VECTOR_C_SIZE: vector_C_size <= obi_wdata;
+                    ADDR_SEL_OP:        sel_op        <= obi_wdata[1:0];
+                    ADDR_START:         start         <= obi_wdata[0];
+                endcase
+            end
         end
     end
 
     // Lectura de registros
     always @(*) begin
-        case (obi_addr)
+        case (addr)
             ADDR_ADDR_A:        obi_rdata = addr_A;
             ADDR_ADDR_B:        obi_rdata = addr_B;
             ADDR_ADDR_C:        obi_rdata = addr_C;
@@ -126,8 +141,13 @@ module obi_slave_if #(
     
     // OBI handshake (simplificado: siempre listo)
     always @(posedge clk) begin
-        obi_gnt <= obi_req;
-        obi_rvalid = obi_req && !obi_we;
+        if (rst) begin
+            obi_gnt    <= 1'b0;
+            obi_rvalid <= 1'b0;
+        end else begin
+            obi_gnt    <= obi_req;
+            obi_rvalid <= obi_req && !obi_we;
+        end
     end
 
 endmodule
