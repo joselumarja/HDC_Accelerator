@@ -6,14 +6,6 @@ description: Hyperdimensional computing obi module.
 filesets:
   rtl:
     files:
-    - rtl/hdc_accelerator_obi_wrapper.sv
-    - rtl/deserializer.sv
-    - rtl/fifo.sv
-    - rtl/hdc_accelerator_top.sv
-    - rtl/hdc_fsm_control.sv
-    - rtl/obi_master_if.sv
-    - rtl/obi_slave_if.sv
-    - rtl/serializer.sv
     - rtl/hdc_accelerator_component/hdc_accelerator_component.v
     - rtl/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc.v
     - rtl/hdc_accelerator_component/hdc_accelerator_component_Block_entry_proc_Pipeline_BindingOpControlLoop.v
@@ -25,6 +17,14 @@ filesets:
     - rtl/hdc_accelerator_component/hdc_accelerator_component_flow_control_loop_pipe_sequential_init.v
     - rtl/hdc_accelerator_component/hdc_accelerator_component_partselect_8ns_32ns_5ns_8_1_1.v
     - rtl/hdc_accelerator_component/hdc_accelerator_component_partset_32ns_32ns_8ns_5ns_32_1_1.v
+    - rtl/deserializer.sv
+    - rtl/fifo.sv
+    - rtl/obi_master_if.sv
+    - rtl/obi_slave_if.sv
+    - rtl/serializer.sv
+    - rtl/hdc_fsm_control.sv
+    - rtl/hdc_accelerator_top.sv
+    - rtl/hdc_accelerator_obi_wrapper.sv
     file_type: systemVerilogSource
 
 targets:
