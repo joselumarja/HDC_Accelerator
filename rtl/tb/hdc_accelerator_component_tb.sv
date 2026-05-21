@@ -50,7 +50,7 @@ module hdc_accelerator_component_tb;
     always #5 ap_clk = ~ap_clk;
 
     // FIFO A
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_A (
@@ -66,7 +66,7 @@ module hdc_accelerator_component_tb;
     );
 
     // FIFO B
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_B (
@@ -82,7 +82,7 @@ module hdc_accelerator_component_tb;
     );
 
     // FIFO C
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_C (

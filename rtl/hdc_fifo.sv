@@ -1,4 +1,4 @@
-module fifo #(
+module hdc_fifo #(
     parameter DATA_WIDTH = 8,
     parameter DEPTH = 16,
     parameter ADDR_WIDTH = $clog2(DEPTH)

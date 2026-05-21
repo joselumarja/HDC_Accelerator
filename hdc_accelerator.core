@@ -18,7 +18,7 @@ filesets:
     - rtl/hdc_accelerator_component/hdc_accelerator_component_partselect_8ns_32ns_5ns_8_1_1.v
     - rtl/hdc_accelerator_component/hdc_accelerator_component_partset_32ns_32ns_8ns_5ns_32_1_1.v
     - rtl/deserializer.sv
-    - rtl/fifo.sv
+    - rtl/hdc_fifo.sv
     - rtl/obi_master_if.sv
     - rtl/obi_slave_if.sv
     - rtl/serializer.sv

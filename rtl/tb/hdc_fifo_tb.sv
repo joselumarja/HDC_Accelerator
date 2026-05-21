@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module fifo_tb;
+module hdc_fifo_tb;
 
     // Parámetros
     parameter DATA_WIDTH = 8;
@@ -24,7 +24,7 @@ module fifo_tb;
     wire [ADDR_WIDTH-1:0] rd_ptr;
 
     // Instancia de la FIFO
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
     ) dut (

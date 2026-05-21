@@ -233,7 +233,7 @@ module hdc_accelerator_top #(
         .mst_obi_rvalid_i(mst_obi_rvalid_i)
     );
     // FIFO A
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_DATA_WIDTH),
         .DEPTH(FIFO_DEPTH)
     ) fifo_A (
@@ -265,7 +265,7 @@ module hdc_accelerator_top #(
     );
 
     // FIFO B
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_DATA_WIDTH),
         .DEPTH(FIFO_DEPTH)
     ) fifo_B (
@@ -297,7 +297,7 @@ module hdc_accelerator_top #(
     );
 
     // FIFO C
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_DATA_WIDTH),
         .DEPTH(FIFO_DEPTH)
     ) fifo_C (
