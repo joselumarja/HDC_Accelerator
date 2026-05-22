@@ -151,4 +151,3 @@ module obi_slave_if #(
     end
 
 endmodule
-
