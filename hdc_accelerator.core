@@ -22,6 +22,7 @@ filesets:
     - rtl/obi_master_if.sv
     - rtl/obi_slave_if.sv
     - rtl/serializer.sv
+    - rtl/fifo_round_robin_arbiter.sv
     - rtl/hdc_fsm_control.sv
     - rtl/hdc_accelerator_top.sv
     - rtl/hdc_accelerator_obi_wrapper.sv
