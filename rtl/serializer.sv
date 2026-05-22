@@ -15,6 +15,9 @@ module serializer #(
     output wire [2:0] state_debug //debug
 );
 
+    localparam int SEG_CNT_WIDTH = $clog2(SEGMENTS + 1);
+    localparam logic [SEG_CNT_WIDTH-1:0] LAST_SEGMENT = SEG_CNT_WIDTH'(SEGMENTS - 1);
+
     typedef enum logic [2:0] {
         IDLE,
         LOAD,
@@ -61,7 +64,7 @@ module serializer #(
                 if (!fifo_full) begin
                     wr_en    = 1;
                     fifo_din = shift_reg[OUT_WIDTH-1:0];
-                    if (segment_cnt == SEGMENTS - 1)
+                    if (segment_cnt == LAST_SEGMENT)
                         next_state = COMPLETE;
                 end else
                     next_state = READY;

@@ -16,6 +16,9 @@ module deserializer #(
     output wire [$clog2(SEGMENTS):0] segment_cnt_debug
 );
 
+    localparam int SEG_CNT_WIDTH = $clog2(SEGMENTS + 1);
+    localparam logic [SEG_CNT_WIDTH-1:0] LAST_SEGMENT = SEG_CNT_WIDTH'(SEGMENTS - 1);
+
     typedef enum logic [2:0] {
         IDLE,
         LOAD,
@@ -66,7 +69,7 @@ module deserializer #(
                 if (!fifo_empty) begin
                     rd_en = 1;
                     
-                    if (segment_cnt == SEGMENTS - 1)
+                    if (segment_cnt == LAST_SEGMENT)
                         next_state = COMPLETE;
 
                 end else
@@ -91,8 +94,7 @@ module deserializer #(
                     data <= 0;
                 end
                 PROCESS: if (!fifo_empty) begin
-                    //data <= (data << IN_WIDTH) | fifo_dout;
-                    data <= data | (fifo_dout << (IN_WIDTH * segment_cnt));
+                    data <= data | (OUT_WIDTH'(fifo_dout) << (IN_WIDTH * segment_cnt));
                     segment_cnt <= segment_cnt + 1;
                 end
             endcase

@@ -17,6 +17,9 @@ module hdc_fifo #(
     
 );
 
+    localparam int PTR_WIDTH = $clog2(DEPTH);
+    localparam logic [PTR_WIDTH-1:0] LAST_PTR = PTR_WIDTH'(DEPTH - 1);
+
     // Memory to store FIFO data
     reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
 
@@ -45,15 +48,6 @@ module hdc_fifo #(
             mem[wr_ptr] <= din;
         end
     end
-
-    // Read logic
-    /*always @(posedge clk) begin
-        if (rst) begin
-            dout   <= 0;
-        end else if (rd_en && !empty) begin
-            dout <= mem[rd_ptr];
-        end
-    end*/
     
     // Pointer logic
     always_ff @(posedge clk) begin
@@ -64,14 +58,14 @@ module hdc_fifo #(
         end else begin
         
             if(wr_en && !full) begin
-                if(wr_ptr == (DEPTH-1))
+                if(wr_ptr == LAST_PTR)
                     wr_ptr <= 0;
                 else
                     wr_ptr <= wr_ptr + 1;
             end
             
             if(rd_en && !empty) begin
-                if(rd_ptr == (DEPTH-1))
+                if(rd_ptr == LAST_PTR)
                     rd_ptr <= 0;
                 else
                     rd_ptr <= rd_ptr + 1;
@@ -92,9 +86,6 @@ module hdc_fifo #(
                 2'b01: begin 
                     fifo_count <= fifo_count - 1; // Solo lectura
                 end
-                /*2'b11: begin
-                    fifo_count <= fifo_count;     // Lectura y escritura simultánea → el tamaño no cambia
-                end*/
                 default: begin 
                     fifo_count <= fifo_count;   // Sin operaciones o Lectura y escritura simultanea
                 end

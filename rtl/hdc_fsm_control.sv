@@ -136,9 +136,6 @@ module hdc_fsm_control #(
     data_movement = |fifo_data_movement_request;
 
     obi_transference_start = 1'b0;
-    /*obi_transference_rw    = (fifo == C);
-    obi_transference_addr  = '0;
-    obi_transference_wdata = '0;*/
 
     serializer_A_start = 1'b0;
     serializer_B_start = 1'b0;
@@ -146,21 +143,6 @@ module hdc_fsm_control #(
 
     serializer_A_data_in = obi_transference_rdata;
     serializer_B_data_in = obi_transference_rdata;
-
-    /*case (fifo)
-        A: begin
-            obi_transference_addr = addr[A];
-        end
-
-        B: begin
-            obi_transference_addr = addr[B];
-        end
-
-        C: begin
-            obi_transference_addr  = addr[C];
-            obi_transference_wdata = deserializer_C_data_out;
-        end
-    endcase*/
 
     case(state)
         IDLE: begin
@@ -284,7 +266,6 @@ end
             case(state)
                 
                 LOAD: begin
-                    //fifo <= fifo_id_t'(fifo_grant);
                     rr_priority_base <= A;
                     counter[A] <= 0;
                     counter[B] <= 0;
@@ -298,7 +279,6 @@ end
                 end
 
                 CHECK_FIFO: begin
-                    //fifo <= fifo_id_t'(fifo_grant);
                     case (fifo_grant)
 
                         A: begin
