@@ -54,15 +54,7 @@ module hdc_fsm_control #(
     output  logic                 deserializer_C_start,
     input  wire [DATA_WIDTH-1:0]  deserializer_C_data_out,
     input logic deserializer_C_busy,
-    input logic deserializer_C_done,
-    
-    //debug
-    output logic [3:0] state_debug,
-    output logic [2:0] fifo_debug,
-    output logic [2:0] vector_finish_debug
-    
-    
-
+    input logic deserializer_C_done
 );
 
     typedef enum logic [3:0] {
@@ -83,7 +75,7 @@ module hdc_fsm_control #(
         C
     } fifo_id_t;
 
-    state_t state = IDLE, next_state = IDLE;
+    state_t state, next_state;
     fifo_id_t fifo;
     
     //Registros de transaccion para las señales al obi
@@ -121,13 +113,6 @@ module hdc_fsm_control #(
     //Señales de estado
     assign busy = !(state == IDLE);
     assign done = (state == FINISHED);
-    
-    //debug
-    assign state_debug = state;
-    assign fifo_debug = fifo;
-    assign vector_finish_debug[A] = vector_finish[A];
-    assign vector_finish_debug[B] = vector_finish[B];
-    assign vector_finish_debug[C] = vector_finish[C];
    
     
     always @(*) begin
@@ -190,6 +175,9 @@ module hdc_fsm_control #(
                         C:
                             if(!deserializer_C_busy)
                                 next_state = SER_DES;
+                        default: begin
+
+                        end
                     endcase
                 end
             end
@@ -208,6 +196,10 @@ module hdc_fsm_control #(
                 C:
                     if(!deserializer_C_busy)
                         next_state = SER_DES;
+
+                default: begin
+
+                end
             endcase
         end
 
@@ -227,6 +219,9 @@ module hdc_fsm_control #(
                     deserializer_C_start = 1'b1;
                     next_state = WAIT_DES;
                 end
+                default: begin
+
+                end
             endcase
         end
 
@@ -237,6 +232,9 @@ module hdc_fsm_control #(
 
         FINISHED: begin
             next_state = IDLE;
+        end
+        default: begin
+
         end
     endcase
 end
@@ -266,6 +264,7 @@ end
             case(state)
                 
                 LOAD: begin
+                    //fifo <= fifo_id_t'(fifo_grant);
                     rr_priority_base <= A;
                     counter[A] <= 0;
                     counter[B] <= 0;
@@ -279,6 +278,7 @@ end
                 end
 
                 CHECK_FIFO: begin
+                    //fifo <= fifo_id_t'(fifo_grant);
                     case (fifo_grant)
 
                         A: begin
@@ -301,9 +301,6 @@ end
 
                         C: begin
                             fifo <= C;
-
-                            // Para C todavía no preparamos escritura aquí,
-                            // porque primero hay que deserializar.
                         end
 
                         default: begin
@@ -340,6 +337,10 @@ end
                             addr[C]    <= addr[C] + (DATA_WIDTH/8);
                             counter[C] <= counter[C] + DATA_WIDTH;
                         end
+
+                        default: begin
+
+                        end
                     endcase
                 end
                 
@@ -348,7 +349,11 @@ end
                     if(obi_transference_done) begin
                         rr_priority_base <= fifo_grant + 1;
                     end
-                end         
+                end   
+
+                default: begin
+
+                end      
                     
             endcase
         end

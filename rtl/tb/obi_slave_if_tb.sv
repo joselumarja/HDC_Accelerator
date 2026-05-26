@@ -46,8 +46,6 @@ module obi_slave_if_tb;
     logic [ADDR_WIDTH-1:0] vector_C_size;
     logic [1:0] sel_op;
 
-    logic [1:0] state_debug;
-
     // Reloj
     always #5 clk = ~clk;
 
@@ -76,9 +74,7 @@ module obi_slave_if_tb;
         .vector_A_size(vector_A_size),
         .vector_B_size(vector_B_size),
         .vector_C_size(vector_C_size),
-        .sel_op(sel_op),
-
-        .state_debug(state_debug)
+        .sel_op(sel_op)
     );
 
     // ------------------------------------------------------------
@@ -96,9 +92,6 @@ module obi_slave_if_tb;
             repeat (4) @(posedge clk);
             rst = 1'b0;
             repeat (2) @(posedge clk);
-
-            assert(state_debug == ST_IDLE)
-                else $error("Tras reset, el estado debería ser IDLE");
 
             assert(addr_A == 0)
                 else $error("addr_A debería inicializarse a 0");
@@ -273,17 +266,10 @@ module obi_slave_if_tb;
         // --------------------------------------------------------
         $display("Escribiendo START...");
 
-        assert(state_debug == ST_IDLE)
-            else $error("Antes de START, el estado debería ser IDLE");
-
         obi_write(ADDR_START, 32'd1);
 
         // Al volver de obi_write, ya estamos justo después del ciclo
         // en el que la FSM ha entrado en START_PULSE.
-        $display("state_debug = %0d, start_out = %b", state_debug, start_out);
-
-        assert(state_debug == ST_START_PULSE)
-            else $error("Después de START, el estado debería ser START_PULSE");
 
         assert(start_out == 1'b1)
             else $error("start_out debería estar activo en START_PULSE");
@@ -291,17 +277,11 @@ module obi_slave_if_tb;
         @(posedge clk);
         #1;
 
-        assert(state_debug == ST_RUNNING)
-            else $error("Tras START_PULSE, el estado debería ser RUNNING");
-
         assert(start_out == 1'b0)
             else $error("start_out debería durar solo un ciclo");
 
         @(posedge clk);
         #1;
-
-        assert(state_debug == ST_RUNNING)
-            else $error("Tras START_PULSE, el estado debería ser RUNNING");
 
         assert(start_out == 1'b0)
             else $error("start_out debería durar solo un ciclo");
@@ -325,9 +305,6 @@ module obi_slave_if_tb;
         @(posedge clk);
         #1;
 
-        assert(state_debug == ST_DONE)
-            else $error("Tras done_in, el estado debería ser DONE");
-
         obi_read_check(ADDR_DONE, 32'h0000_0001);
 
         $display("addr_A          = %h", addr_A);
@@ -337,7 +314,6 @@ module obi_slave_if_tb;
         $display("vector_B_size   = %d", vector_B_size);
         $display("vector_C_size   = %d", vector_C_size);
         $display("sel_op          = %d", sel_op);
-        $display("state_debug     = %d", state_debug);
 
         $display("\n--- TEST FINALIZADO CORRECTAMENTE ---\n");
 

@@ -29,11 +29,7 @@ module hdc_accelerator_top #(
     output logic [DATA_WIDTH/8-1:0] mst_obi_be_o,
     input  logic                  mst_obi_gnt_i,
     input  logic [DATA_WIDTH-1:0] mst_obi_rdata_i,
-    input  logic                  mst_obi_rvalid_i,
-    
-    //debug
-    output logic                  done_debug,
-    output logic [3:0]                  state_debug
+    input  logic                  mst_obi_rvalid_i
 );
 
     // Señales Slave OBI
@@ -123,11 +119,6 @@ module hdc_accelerator_top #(
     //Calculo de iteraciones en el componente
     assign component_iterations = vector_A_size / FIFO_DATA_WIDTH;
     
-    //debug
-    wire [3:0] state;
-    assign done_debug = done;
-    assign state_debug = state;
-    
     // OBI Slave
     obi_slave_if #(
         .ADDR_WIDTH(ADDR_WIDTH),
@@ -203,9 +194,7 @@ module hdc_accelerator_top #(
         .deserializer_C_start(deserializer_C_start),
         .deserializer_C_data_out(data_C_out),
         .deserializer_C_busy(deserializer_C_busy),
-        .deserializer_C_done(deserializer_C_done),
-        
-        .state_debug(state)
+        .deserializer_C_done(deserializer_C_done)
     );
 
 

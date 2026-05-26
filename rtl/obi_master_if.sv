@@ -57,6 +57,10 @@ module obi_master_if #(
                     if (mst_obi_rvalid_i)
                         rdata_reg <= mst_obi_rdata_i;
                 end
+
+                default: begin
+
+                end
             endcase
         end
     end
@@ -94,6 +98,10 @@ module obi_master_if #(
             DONE: begin
                 mst_obi_req_o = 1'b0;
                 next_state = IDLE;
+            end
+
+            default: begin
+
             end
         endcase
     end

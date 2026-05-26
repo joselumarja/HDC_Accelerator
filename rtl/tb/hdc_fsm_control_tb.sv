@@ -101,13 +101,6 @@ module hdc_fsm_control_tb;
     logic deserializer_C_done;
 
     // ------------------------------------------------------------
-    // Debug
-    // ------------------------------------------------------------
-    logic [3:0] state_debug;
-    logic [2:0] fifo_debug;
-    logic [2:0] vector_finish_debug;
-
-    // ------------------------------------------------------------
     // Contadores de comprobación
     // ------------------------------------------------------------
     int read_A_count;
@@ -181,11 +174,7 @@ module hdc_fsm_control_tb;
         .deserializer_C_start(deserializer_C_start),
         .deserializer_C_data_out(deserializer_C_data_out),
         .deserializer_C_busy(deserializer_C_busy),
-        .deserializer_C_done(deserializer_C_done),
-
-        .state_debug(state_debug),
-        .fifo_debug(fifo_debug),
-        .vector_finish_debug(vector_finish_debug)
+        .deserializer_C_done(deserializer_C_done)
     );
 
     // ------------------------------------------------------------
@@ -282,7 +271,6 @@ module hdc_fsm_control_tb;
     // ------------------------------------------------------------
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
-            pending_fifo  <= FIFO_A;
             pending_addr  <= '0;
             pending_wdata <= '0;
             pending_rw    <= 1'b0;
@@ -295,15 +283,13 @@ module hdc_fsm_control_tb;
 
             // Captura de la transacción en el momento en que la FSM la lanza
             if (obi_transference_start) begin
-                pending_fifo  <= fifo_debug[1:0];
                 pending_addr  <= obi_transference_addr;
                 pending_wdata <= obi_transference_wdata;
                 pending_rw    <= obi_transference_rw;
                 pending_valid <= 1'b1;
 
-                $display("[%0t] OBI START: fifo=%0d rw=%0d addr=%h wdata=%h",
+                $display("[%0t] OBI START: rw=%0d addr=%h wdata=%h",
                         $time,
-                        fifo_debug[1:0],
                         obi_transference_rw,
                         obi_transference_addr,
                         obi_transference_wdata);
@@ -314,58 +300,11 @@ module hdc_fsm_control_tb;
                 assert(pending_valid)
                     else $error("OBI DONE recibido sin transacción pendiente");
 
-                $display("[%0t] OBI DONE : fifo=%0d rw=%0d addr=%h rdata=%h",
+                $display("[%0t] OBI DONE : rw=%0d addr=%h rdata=%h",
                         $time,
-                        pending_fifo,
                         pending_rw,
                         pending_addr,
                         obi_transference_rdata);
-
-                case (pending_fifo)
-
-                    FIFO_A: begin
-                        read_A_count <= read_A_count + 1;
-
-                        assert(pending_rw == 1'b0)
-                            else $error("FIFO A debería generar lectura OBI");
-
-                        assert(pending_addr >= ADDR_A)
-                            else $error("Dirección A por debajo de la base");
-
-                        assert(((pending_addr - ADDR_A) % (DATA_WIDTH/8)) == 0)
-                            else $error("Dirección A no alineada");
-                    end
-
-                    FIFO_B: begin
-                        read_B_count <= read_B_count + 1;
-
-                        assert(pending_rw == 1'b0)
-                            else $error("FIFO B debería generar lectura OBI");
-
-                        assert(pending_addr >= ADDR_B)
-                            else $error("Dirección B por debajo de la base");
-
-                        assert(((pending_addr - ADDR_B) % (DATA_WIDTH/8)) == 0)
-                            else $error("Dirección B no alineada");
-                    end
-
-                    FIFO_C: begin
-                        write_C_count <= write_C_count + 1;
-
-                        assert(pending_rw == 1'b1)
-                            else $error("FIFO C debería generar escritura OBI");
-
-                        assert(pending_addr >= ADDR_C)
-                            else $error("Dirección C por debajo de la base");
-
-                        assert(((pending_addr - ADDR_C) % (DATA_WIDTH/8)) == 0)
-                            else $error("Dirección C no alineada");
-                    end
-
-                    default: begin
-                        $error("FIFO pendiente no válida: %0d", pending_fifo);
-                    end
-                endcase
 
                 pending_valid <= 1'b0;
             end
@@ -459,31 +398,6 @@ module hdc_fsm_control_tb;
     endtask
 
     // ------------------------------------------------------------
-    // Load
-    // ------------------------------------------------------------
-    always_ff @(posedge clk) begin
-    if (state_debug == ST_LOAD) begin
-        $display("[%0t] LOAD INPUTS: addr_A=%h addr_B=%h addr_C=%h size_A=%0d size_B=%0d size_C=%0d",
-                 $time,
-                 addr_A,
-                 addr_B,
-                 addr_C,
-                 vector_A_size,
-                 vector_B_size,
-                 vector_C_size);
-    end
-
-    if (state_debug == ST_CHECK_FIFO) begin
-        $display("[%0t] CHECK_FIFO: req=%b grant=%0d rr_base=%0d finish=%b",
-                 $time,
-                 fifo_data_movement_request,
-                 fifo_grant,
-                 rr_priority_base,
-                 vector_finish_debug);
-    end
-end
-
-    // ------------------------------------------------------------
     // Test principal
     // ------------------------------------------------------------
     initial begin
@@ -568,15 +482,6 @@ end
         assert(obi_if.mem[ADDR_C[ADDR_WIDTH-1:2]] == DATA_C)
             else $error("La memoria OBI no contiene el dato esperado en C. Esperado=%h Obtenido=%h",
                         DATA_C, obi_if.mem[ADDR_C[ADDR_WIDTH-1:2]]);
-
-        assert(vector_finish_debug[0] == 1'b1)
-            else $error("vector_finish_debug[A] debería estar activo");
-
-        assert(vector_finish_debug[1] == 1'b1)
-            else $error("vector_finish_debug[B] debería estar activo");
-
-        assert(vector_finish_debug[2] == 1'b1)
-            else $error("vector_finish_debug[C] debería estar activo");
 
         $display("Lecturas A:              %0d", read_A_count);
         $display("Lecturas B:              %0d", read_B_count);

@@ -20,11 +20,8 @@ module serializer_tb;
     // FIFO dummy
     wire [OUT_WIDTH-1:0] fifo_dout = 0;
     reg rd_en = 0;
-    
-    //debug
-    wire [2:0] state;
 
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(OUT_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_inst (
@@ -51,8 +48,7 @@ module serializer_tb;
         .done(done),
         .fifo_din(fifo_din),
         .wr_en(wr_en),
-        .fifo_full(full),
-        .state_debug(state)
+        .fifo_full(full)
     );
 
     always #5 clk = ~clk;

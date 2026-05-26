@@ -11,10 +11,7 @@ module hdc_fifo #(
     output wire  [DATA_WIDTH-1:0] dout,     // Data out
     output wire  [ADDR_WIDTH:0]  size,      // Number elements in fifo
     output wire                 full,
-    output wire                 empty,
-    output wire [ADDR_WIDTH-1:0] wr_ptr_debug,
-    output wire [ADDR_WIDTH-1:0] rd_ptr_debug
-    
+    output wire                 empty
 );
 
     localparam int PTR_WIDTH = $clog2(DEPTH);
@@ -24,15 +21,10 @@ module hdc_fifo #(
     reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
 
     // Write and read pointers
-    reg [ADDR_WIDTH-1:0] wr_ptr = 0;
-    reg [ADDR_WIDTH-1:0] rd_ptr = 0;
+    reg [ADDR_WIDTH-1:0] wr_ptr;
+    reg [ADDR_WIDTH-1:0] rd_ptr;
 
-    reg [ADDR_WIDTH:0] fifo_count = 0;
-    
-    
-    //debug
-    assign wr_ptr_debug = wr_ptr;
-    assign rd_ptr_debug = rd_ptr;
+    reg [ADDR_WIDTH:0] fifo_count;
     
     // Signal logic
     assign full  = (fifo_count == DEPTH);

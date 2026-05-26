@@ -18,7 +18,7 @@ module serdes_tb;
     wire [ADDR_WIDTH:0] size;
     wire full, empty;
 
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_inst (

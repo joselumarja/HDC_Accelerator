@@ -11,9 +11,7 @@ module deserializer #(
     output reg                  done,
     input  wire [IN_WIDTH-1:0] fifo_dout,
     output reg                  rd_en,
-    input  wire                 fifo_empty,
-    output wire [2:0] state_debug,
-    output wire [$clog2(SEGMENTS):0] segment_cnt_debug
+    input  wire                 fifo_empty
 );
 
     localparam int SEG_CNT_WIDTH = $clog2(SEGMENTS + 1);
@@ -27,14 +25,10 @@ module deserializer #(
         COMPLETE
     } state_t;
 
-    state_t state = IDLE, next_state = IDLE;
+    state_t state, next_state;
     
-    reg [$clog2(SEGMENTS):0] segment_cnt = 0;
-    reg [OUT_WIDTH-1:0] data = 0;
-    
-    //debug
-    assign state_debug = state;
-    assign segment_cnt_debug = segment_cnt;
+    reg [$clog2(SEGMENTS):0] segment_cnt;
+    reg [OUT_WIDTH-1:0] data;
     
     //output logic
     assign data_out = data;
@@ -80,6 +74,9 @@ module deserializer #(
                 done = 1;
                 next_state = IDLE;
             end
+            default: begin
+
+            end
         endcase
     end
 
@@ -96,6 +93,9 @@ module deserializer #(
                 PROCESS: if (!fifo_empty) begin
                     data <= data | (OUT_WIDTH'(fifo_dout) << (IN_WIDTH * segment_cnt));
                     segment_cnt <= segment_cnt + 1;
+                end
+                default: begin
+
                 end
             endcase
         end

@@ -11,8 +11,7 @@ module serializer #(
     output reg                  done,
     output reg  [OUT_WIDTH-1:0] fifo_din,
     output reg                  wr_en,
-    input  wire                 fifo_full,
-    output wire [2:0] state_debug //debug
+    input  wire                 fifo_full
 );
 
     localparam int SEG_CNT_WIDTH = $clog2(SEGMENTS + 1);
@@ -26,13 +25,10 @@ module serializer #(
         COMPLETE
     } state_t;
 
-    state_t state = IDLE, next_state = IDLE;
+    state_t state, next_state;
     
-    reg [$clog2(SEGMENTS):0] segment_cnt = 0;
+    reg [$clog2(SEGMENTS):0] segment_cnt;
     reg [IN_WIDTH-1:0] shift_reg;
-    
-    //debug
-    assign state_debug = state;
 
     always_ff @(posedge clk) begin
         if (rst) state <= IDLE;
@@ -73,6 +69,9 @@ module serializer #(
                 done = 1;
                 next_state = IDLE;
             end
+            default: begin
+
+            end
         endcase
     end
 
@@ -89,6 +88,9 @@ module serializer #(
                 PROCESS: if (!fifo_full) begin
                     shift_reg   <= shift_reg >> OUT_WIDTH;
                     segment_cnt <= segment_cnt + 1;
+                end
+                default: begin
+
                 end
             endcase
         end

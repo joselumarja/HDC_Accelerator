@@ -65,17 +65,12 @@ module hdc_accelerator_component_serdes_tb;
     wire fifo_A_empty_n = ~fifo_A_empty;
     wire fifo_B_empty_n = ~fifo_B_empty;
     wire fifo_C_full_n  = ~fifo_C_full;
-    
-    
-    //debug
-    wire [2:0] state;
-    wire [$clog2(SEGMENTS):0] segment_cnt;
 
     // Generación de reloj
     always #5 ap_clk = ~ap_clk;
 
     // FIFO A
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_A (
@@ -106,7 +101,7 @@ module hdc_accelerator_component_serdes_tb;
     );
 
     // FIFO B
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_B (
@@ -137,7 +132,7 @@ module hdc_accelerator_component_serdes_tb;
     );
 
     // FIFO C
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(FIFO_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_C (
@@ -164,9 +159,7 @@ module hdc_accelerator_component_serdes_tb;
         .done(deserializer_C_done),
         .fifo_dout(fifo_C_dout),
         .rd_en(fifo_C_rd_en),
-        .fifo_empty(fifo_C_empty),
-        .state_debug(state),
-        .segment_cnt_debug(segment_cnt)
+        .fifo_empty(fifo_C_empty)
     );
 
 

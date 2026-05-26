@@ -10,10 +10,6 @@ module deserializer_tb;
 
     reg clk, rst, start;
     wire busy, done;
-    
-    //debug
-    wire [2:0] state;
-    wire [$clog2(SEGMENTS):0] segment_cnt;
 
     wire [OUT_WIDTH-1:0] data_out;
     reg [IN_WIDTH-1:0] fifo_din = 0;
@@ -24,7 +20,7 @@ module deserializer_tb;
     wire full, empty;
 
     // FIFO con datos predefinidos
-    fifo #(
+    hdc_fifo #(
         .DATA_WIDTH(IN_WIDTH),
         .DEPTH(DEPTH)
     ) fifo_inst (
@@ -51,9 +47,7 @@ module deserializer_tb;
         .done(done),
         .fifo_dout(fifo_dout),
         .rd_en(rd_en),
-        .fifo_empty(empty),
-        .state_debug(state),
-        .segment_cnt_debug(segment_cnt)
+        .fifo_empty(empty)
     );
 
     always #5 clk = ~clk;

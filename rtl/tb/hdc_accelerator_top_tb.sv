@@ -67,12 +67,6 @@ module hdc_accelerator_top_tb;
     logic master_req_seen;
 
     // ------------------------------------------------------------
-    // Debug
-    // ------------------------------------------------------------
-    logic done_debug;
-    logic [3:0] state_debug;
-
-    // ------------------------------------------------------------
     // Memoria externa simulada
     // ------------------------------------------------------------
     logic [DATA_WIDTH-1:0] mem [0:MEM_WORDS-1];
@@ -115,10 +109,7 @@ module hdc_accelerator_top_tb;
         .mst_obi_be_o(mst_obi_be_o),
         .mst_obi_gnt_i(mst_obi_gnt_i),
         .mst_obi_rdata_i(mst_obi_rdata_i),
-        .mst_obi_rvalid_i(mst_obi_rvalid_i),
-
-        .done_debug(done_debug),
-        .state_debug(state_debug)
+        .mst_obi_rvalid_i(mst_obi_rvalid_i)
     );
 
     // ------------------------------------------------------------
@@ -363,27 +354,6 @@ module hdc_accelerator_top_tb;
     end
 
     // ------------------------------------------------------------
-    // Esperar finalización
-    // ------------------------------------------------------------
-    task automatic wait_done_with_timeout(input int max_cycles);
-        int cycles;
-        begin
-            cycles = 0;
-
-            while (!done_debug && cycles < max_cycles) begin
-                @(posedge clk);
-                cycles++;
-            end
-
-            if (!done_debug) begin
-                $fatal(1, "Timeout: el acelerador no terminó en %0d ciclos", max_cycles);
-            end
-
-            $display("[%0t] DONE detectado tras %0d ciclos", $time, cycles);
-        end
-    endtask
-
-    // ------------------------------------------------------------
     // Comprobar región C
     // ------------------------------------------------------------
     task automatic check_output_region();
@@ -431,7 +401,7 @@ module hdc_accelerator_top_tb;
         $display("Lanzando acelerador...");
         slave_write(REG_START, 32'd1);
 
-        wait_done_with_timeout(5000);
+        #1000;
 
         slave_read(REG_DONE, done_reg);
 

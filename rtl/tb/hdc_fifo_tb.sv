@@ -19,9 +19,6 @@ module hdc_fifo_tb;
     wire [ADDR_WIDTH:0] size;
     wire full;
     wire empty;
-    
-    wire [ADDR_WIDTH-1:0] wr_ptr;
-    wire [ADDR_WIDTH-1:0] rd_ptr;
 
     // Instancia de la FIFO
     hdc_fifo #(
@@ -36,9 +33,7 @@ module hdc_fifo_tb;
         .dout(dout),
         .size(size),
         .full(full),
-        .empty(empty),
-        .wr_ptr_debug(wr_ptr),
-        .rd_ptr_debug(rd_ptr)
+        .empty(empty)
     );
 
     // Reloj
