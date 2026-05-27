@@ -26,6 +26,7 @@ filesets:
     - rtl/hdc_fsm_control.sv
     - rtl/hdc_accelerator_top.sv
     - rtl/hdc_accelerator_obi_wrapper.sv
+    - verilator_waivers.vlt : {file_type: vlt}
     file_type: systemVerilogSource
 
 targets:
