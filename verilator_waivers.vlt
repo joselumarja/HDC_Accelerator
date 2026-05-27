@@ -1,5 +1,6 @@
 `verilator_config
 
+lint_off -rule TIMESCALEMOD  -file "*/hdc_accelerator_component/*.v"
 lint_off -rule WIDTHTRUNC  -file "*/hdc_accelerator_component/*.v"
 lint_off -rule WIDTHEXPAND -file "*/hdc_accelerator_component/*.v"
 lint_off -rule UNUSEDSIGNAL -file "*/hdc_accelerator_component/*.v"
